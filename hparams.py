@@ -6,7 +6,7 @@ class Hparams:
 
     # training
     parser.add_argument('--batch_size', default=5, type=int)
-    parser.add_argument('--lr', default=0.0001, type=float, help="learning rate")
+    parser.add_argument('--lr', default=0.001, type=float, help="learning rate")
     parser.add_argument('--warmup_steps', default=100, type=int)
     parser.add_argument('--num_epochs', default=100, type=int)
     parser.add_argument('--load_ckpt', default=False, type=bool)
@@ -45,9 +45,9 @@ class Hparams_selfattn:
 
     # training
     parser.add_argument('--batch_size', default=10, type=int)
-    parser.add_argument('--lr', default=0.00005, type=float, help="learning rate")
+    parser.add_argument('--lr', default=0.001, type=float, help="learning rate")
     parser.add_argument('--warmup_steps', default=1000, type=int)
-    parser.add_argument('--num_epochs', default=8000, type=int)
+    parser.add_argument('--num_epochs', default=100, type=int)
     parser.add_argument('--load_ckpt', default=False, type=bool)
 
     # model

@@ -13,7 +13,7 @@ from SelfAttentionModel import Self_attention
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, mean_squared_error
 
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+# os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
 logging.basicConfig(level=logging.INFO)
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)

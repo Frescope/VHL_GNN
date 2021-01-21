@@ -229,7 +229,7 @@ logging.info("# Prepare training batches")
 # load data
 label_record = load_label()
 data_train, data_valid, data_test = load_data(label_record)
-data_eval = data_valid
+data_eval = data_train
 train_batches, num_train_batches, num_train_samples = get_batch_train(data_train)
 eval_batches, num_eval_batches, num_eval_samples, eval_ids = get_batch_eval(data_eval)
 

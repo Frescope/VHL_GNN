@@ -323,7 +323,8 @@ with tf.Session(config=config) as sess:
                 preds_list.extend(preds.tolist())
 
             temp = np.array(preds_list)
-            logging.info('Preds(Mean, Min, Max): ',np.mean(temp),np.min(temp),np.max(temp))
+            logging.info('Preds(Mean, Min, Max): {:.10f} {:.10f} {:.10f}'.format(
+                np.mean(temp),np.min(temp),np.max(temp)))
             a,p,r,f = evaluation(preds_list, data_eval, eval_ids)
             logging.info("APRF: %.3f  %.3f  %.3f  %.3f"%(a,p,r,f))
             logging.info('Last Batch Loss: %.3f'%_loss)

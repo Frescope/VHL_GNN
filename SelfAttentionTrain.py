@@ -258,8 +258,8 @@ config.gpu_options.allow_growth = True
 saver = tf.train.Saver(max_to_keep=hp.ckpt_num)
 with tf.Session(config=config) as sess:
     # load checkpoint:
-    ckpt = tf.train.latest_checkpoint(hp.model_save_dir)
-    # ckpt = os.path.join(hp.model_save_dir, "")
+    # ckpt = tf.train.latest_checkpoint(hp.model_save_dir)
+    ckpt = os.path.join(hp.model_save_dir, "E1033L0.057F10.238-136356")
     if ckpt is None or hp.load_ckpt == False:
         logging.info("Initializing from scratch")
         sess.run(tf.global_variables_initializer())
@@ -332,6 +332,7 @@ with tf.Session(config=config) as sess:
             logging.info('Last Batch Loss: %.3f'%_loss)
             logging.info('Epoch Loss: %.3f' % np.mean(np.array(epoch_loss)))
 
+            os._exit()
             # model_output = "iwslt2016_E%02dL%.2fF1%.3f" % (epoch, _loss,f)
             model_output = "E%04dL%.3fF1%.3f" % (epoch, np.mean(np.array(epoch_loss)), f)
             epoch_loss.clear()

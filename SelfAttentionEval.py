@@ -256,8 +256,8 @@ config.gpu_options.allow_growth = True
 saver = tf.train.Saver(max_to_keep=hp.ckpt_num)
 with tf.Session(config=config) as sess:
     # load checkpoint:
-    # ckpt = tf.train.latest_checkpoint(hp.model_save_dir)
-    ckpt = os.path.join(hp.model_save_dir, "E1033L0.057F10.238-136356")
+    ckpt = tf.train.latest_checkpoint(hp.model_save_dir)
+    # ckpt = os.path.join(hp.model_save_dir, "E1033L0.057F10.238-136356")
     if ckpt is None or hp.load_ckpt == False:
         logging.info("Initializing from scratch")
         sess.run(tf.global_variables_initializer())
@@ -283,11 +283,11 @@ with tf.Session(config=config) as sess:
                 np.mean(batch_logits),np.min(batch_logits),np.max(batch_logits)))
         logging.info('Batch Loss: {}\n'.format(batch_loss))
         
-        # print('Step: ',eval_step)
-        # print('Logits: ')
-        # print(batch_logits.reshape((-1)))
-        # print('Label: ')
-        # print(batch_ys[1].reshape((-1)))    
+        print('Step: ',eval_step)
+        print('Logits: ')
+        print(batch_logits.reshape((-1)))
+        print('Label: ')
+        print(batch_ys[1].reshape((-1)))    
 
     a,p,r,f = evaluation(preds_list, data_eval, eval_ids)
     logging.info("APRF: %.3f  %.3f  %.3f  %.3f"%(a,p,r,f))

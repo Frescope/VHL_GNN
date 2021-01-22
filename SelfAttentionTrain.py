@@ -248,7 +248,7 @@ eval_init_op = iter.make_initializer(eval_batches)
 # build the graph
 logging.info("# Load model")
 m = Self_attention(hp)
-train_logits, loss, train_op, global_step = m.train(xs,ys)
+train_vars, train_grads, train_logits, loss, train_op, global_step = m.train(xs,ys)
 eval_logits = m.eval(xs,ys)
 
 # config session
@@ -285,7 +285,7 @@ with tf.Session(config=config) as sess:
 
     epoch_loss = []
     for i in tqdm(range(_gs, total_steps+1)):
-        vars_observe, grads_observe, batch_loss, _, _gs = sess.run([variable_names, grads, loss, train_op, global_step])
+        vars_observe_o, grads_observe_o, vars_observe, grads_observe, batch_loss, _, _gs = sess.run([train_vars, train_grads, variable_names, grads, loss, train_op, global_step])
         epoch_loss.append(batch_loss)
 
         epoch = math.ceil(_gs / num_train_batches)
@@ -295,9 +295,15 @@ with tf.Session(config=config) as sess:
         for i in range(len(grads_observe)):
             grad = grads_observe[i]
             var = vars_observe[i]
-            logging.info("{} (Mean, Min, Max): {:.6f} {:.6f} {:.6f}".format(
+            grad_o = grads_observe_o[i]
+            var_o = vars_observe_o[i]
+            logging.info("{} (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
+                v_names[i],np.mean(var_o),np.min(var_o),np.max(var_o)))
+            logging.info("{} (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
                 v_names[i],np.mean(var),np.min(var),np.max(var)))
-            logging.info("Gradient (Mean, Min, Max): {:.6f} {:.6f} {:.6f}".format(
+            logging.info("Gradient (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
+                np.mean(grad_o),np.min(grad_o),np.max(grad_o)))
+            logging.info("Gradient (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}\n".format(
                 np.mean(grad),np.min(grad),np.max(grad)))
 
         if _gs and _gs % num_train_batches == 0:

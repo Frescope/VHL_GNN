@@ -296,10 +296,10 @@ with tf.Session(config=config) as sess:
         for i in range(len(grads_observe)):
             grad = [x for (x,v) in grads_observe[i]]
             var = vars_observe[i]
-            # logging.info("{} (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
-            #     v_names[i],np.mean(var),np.min(var),np.max(var)))
-            # logging.info("Gradient (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}\n".format(
-            #     np.mean(grad),np.min(grad),np.max(grad)))
+            logging.info("{} (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
+                v_names[i],np.mean(var),np.min(var),np.max(var)))
+            logging.info("Gradient (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}\n".format(
+                np.mean(grad),np.min(grad),np.max(grad)))
 
         if _gs and _gs % num_train_batches == 0:
             # evaluation

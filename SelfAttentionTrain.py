@@ -269,8 +269,6 @@ with tf.Session(config=config) as sess:
         logging.info("Ckpt Loaded: {}".format(ckpt))
 
     sess.run(train_init_op)
-    print('1_x: ',xs)
-    print('1_y: ',ys)
     total_steps = hp.num_epochs * num_train_batches
     _gs = sess.run(global_step)
 
@@ -297,45 +295,28 @@ with tf.Session(config=config) as sess:
 
     epoch_loss = []
     for i in tqdm(range(_gs, total_steps+1)):
-        # batch_loss, _, _gs = sess.run([loss, train_op, global_step])
-        # epoch_loss.append(batch_loss)
-
-        _ob_logits = sess.run(train_logits)
-        print('Step: {} Train Logits(Mean, Min, Max): {:.10f} {:.10f} {:.10f}'.format(
-                _gs, np.mean(_ob_logits),np.min(_ob_logits),np.max(_ob_logits)))
-        print('2_x: ',xs)
-        print('2_y: ',ys)
-        # _ob_grad, _ob_loss = sess.run([grad1, loss])
-        # print('Loss: ',_ob_loss, 'Gradient(Mean, Min, Max): ',
-        #         np.mean(_ob_grad), np.min(_ob_grad), np.max(_ob_grad))
+        batch_loss, _, _gs = sess.run([loss, train_op, global_step])
+        epoch_loss.append(batch_loss)
 
         epoch = math.ceil(_gs / num_train_batches)
-        if True:
-        # if _gs and _gs % num_train_batches == 0:
-
-            # logging.info('Train Logits(Mean, Min, Max): {:.10f} {:.10f} {:.10f}'.format(
-            #     np.mean(_train_logits),np.min(_train_logits),np.max(_train_logits)))
+        if _gs and _gs % num_train_batches == 0:
 
             # evaluation
             _ = sess.run(eval_init_op)
-            print('3_x: ',xs)
-            print('3_y: ',ys)
             preds_list = []
             for eval_step in range(num_eval_batches):
                 preds = sess.run(train_logits)  # (bc,seq_len)
-                preds = preds.reshape((-1))
-                preds_list.extend(preds.tolist())
+                preds_list.extend(preds.reshape((-1)).tolist())
 
-            temp = np.array(preds_list)
-            logging.info('Preds(Mean, Min, Max): {:.10f} {:.10f} {:.10f}'.format(
-                np.mean(temp),np.min(temp),np.max(temp)))
+            # temp = np.array(preds_list)
+            # logging.info('Preds(Mean, Min, Max): {:.10f} {:.10f} {:.10f}'.format(
+            #     np.mean(temp),np.min(temp),np.max(temp)))
             a,p,r,f = evaluation(preds_list, data_eval, eval_ids)
             logging.info("APRF: %.3f  %.3f  %.3f  %.3f"%(a,p,r,f))
 
-            # logging.info('Last Batch Loss: %.3f'%_loss)
-            # logging.info('Epoch Loss: %.3f' % np.mean(np.array(epoch_loss)))
+            logging.info('Last Batch Loss: %.3f' % batch_loss)
+            logging.info('Epoch Loss: %.3f' % np.mean(np.array(epoch_loss)))
 
-            # model_output = "iwslt2016_E%02dL%.2fF1%.3f" % (epoch, _loss,f)
             model_output = "E%04dL%.3fF1%.3f" % (epoch, np.mean(np.array(epoch_loss)), f)
             epoch_loss.clear()
 
@@ -345,7 +326,7 @@ with tf.Session(config=config) as sess:
                 saver.save(sess, ckpt_name, global_step=_gs)
                 logging.info("after training of {} epochs, {} has been saved.".format(epoch, ckpt_name))
 
-            # logging.info("# fall back to train mode")
+            logging.info("# fall back to train mode")
             sess.run(train_init_op)
 
 logging.info("Done")

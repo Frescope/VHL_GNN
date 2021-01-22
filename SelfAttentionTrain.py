@@ -258,8 +258,8 @@ config.gpu_options.allow_growth = True
 saver = tf.train.Saver(max_to_keep=hp.ckpt_num)
 with tf.Session(config=config) as sess:
     # load checkpoint:
-    # ckpt = tf.train.latest_checkpoint(hp.model_save_dir)
-    ckpt = os.path.join(hp.model_save_dir, "E1033L0.057F10.238-136356")
+    ckpt = tf.train.latest_checkpoint(hp.model_save_dir)
+    # ckpt = os.path.join(hp.model_save_dir, "E1033L0.057F10.238-136356")
     if ckpt is None or hp.load_ckpt == False:
         logging.info("Initializing from scratch")
         sess.run(tf.global_variables_initializer())

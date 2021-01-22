@@ -295,7 +295,7 @@ with tf.Session(config=config) as sess:
 
     epoch_loss = []
     for i in tqdm(range(_gs, total_steps+1)):
-        batch_loss, _, _gs = sess.run([loss, tf.no_op(), global_step])
+        batch_loss, _, _gs = sess.run([loss, train_op, global_step])
         epoch_loss.append(batch_loss)
 
         # _ob_logits = sess.run(train_logits)
@@ -307,8 +307,8 @@ with tf.Session(config=config) as sess:
         #         np.mean(_ob_grad), np.min(_ob_grad), np.max(_ob_grad))
 
         epoch = math.ceil(_gs / num_train_batches)
-
-        if _gs and _gs % num_train_batches == 0:
+        if _gs == 0:
+        # if _gs and _gs % num_train_batches == 0:
             logging.info("\nepoch {} is done".format(epoch))
             _train_logits, _loss = sess.run([train_logits,loss]) # train loss
 

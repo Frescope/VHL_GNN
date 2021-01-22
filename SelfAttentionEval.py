@@ -275,7 +275,7 @@ with tf.Session(config=config) as sess:
     for eval_step in range(num_eval_batches):
         batch_xs, batch_ys, batch_logits, batch_loss = sess.run(
             [xs, ys, train_logits, loss])
-        preds_list.extend(batch_logits.tolist())
+        preds_list.extend(batch_logits.reshape((-1)).tolist())
 
         logging.info('Step: {}'.format(eval_step))
         logging.info('Batch Logits(Mean, Min, Max): {:.10f} {:.10f} {:.10f}'.format(

@@ -51,9 +51,9 @@ class Hparams_selfattn:
     parser.add_argument('--load_ckpt', default=False, type=bool)
 
     # checkpoint
-    parser.add_argument('--ckpt_epoch', default=750, type=int,
+    parser.add_argument('--ckpt_epoch', default=200, type=int,
                         help="Start to save ckpt")
-    parser.add_argument('--ckpt_num', default=30, type=int,
+    parser.add_argument('--ckpt_num', default=20, type=int,
                         help="number of ckpt to keep")
 
     # model

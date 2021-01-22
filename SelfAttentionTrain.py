@@ -296,6 +296,7 @@ with tf.Session(config=config) as sess:
         # # logging.info(len(vars_observe),len(grads_observe))
         for i in range(len(grads_observe)):
             grad, v_ = grads_observe[i]
+            logging.info(len(grad),len(v_))
             # grad = grads_observe[i]
             var = vars_observe[i]
             logging.info("{} (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
@@ -331,7 +332,7 @@ with tf.Session(config=config) as sess:
 
             logging.info("# fall back to train mode")
             sess.run(train_init_op)
-            # os._exit(0)
+            os._exit(0)
 
 logging.info("Done")
 

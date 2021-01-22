@@ -320,7 +320,7 @@ with tf.Session(config=config) as sess:
             preds_list = []
             for eval_step in range(num_eval_batches):
                 _observe = sess.run([xs,ys])
-                preds = sess.run(eval_logits)  # (bc,seq_len)
+                preds = sess.run(train_logits)  # (bc,seq_len)
                 preds = preds.reshape((-1))
                 preds_list.extend(preds.tolist())
 
@@ -332,7 +332,7 @@ with tf.Session(config=config) as sess:
             logging.info('Last Batch Loss: %.3f'%_loss)
             logging.info('Epoch Loss: %.3f' % np.mean(np.array(epoch_loss)))
 
-            os._exit()
+            os._exit(0)
             # model_output = "iwslt2016_E%02dL%.2fF1%.3f" % (epoch, _loss,f)
             model_output = "E%04dL%.3fF1%.3f" % (epoch, np.mean(np.array(epoch_loss)), f)
             epoch_loss.clear()

@@ -317,6 +317,7 @@ with tf.Session(config=config) as sess:
             _ = sess.run(eval_init_op)
             preds_list = []
             for eval_step in range(num_eval_batches):
+                _ob = sess.run([xs,ys])
                 preds = sess.run(eval_logits)  # (bc,seq_len)
                 preds = preds.reshape((-1))
                 preds_list.extend(preds.tolist())

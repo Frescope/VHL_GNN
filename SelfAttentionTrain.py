@@ -309,11 +309,9 @@ with tf.Session(config=config) as sess:
         epoch = math.ceil(_gs / num_train_batches)
         if True:
         # if _gs and _gs % num_train_batches == 0:
-            logging.info("\nepoch {} is done".format(epoch))
-            _train_logits, _loss = sess.run([train_logits,loss]) # train loss
 
-            logging.info('Train Logits(Mean, Min, Max): {:.10f} {:.10f} {:.10f}'.format(
-                np.mean(_train_logits),np.min(_train_logits),np.max(_train_logits)))
+            # logging.info('Train Logits(Mean, Min, Max): {:.10f} {:.10f} {:.10f}'.format(
+            #     np.mean(_train_logits),np.min(_train_logits),np.max(_train_logits)))
 
             # evaluation
             _ = sess.run(eval_init_op)
@@ -329,8 +327,8 @@ with tf.Session(config=config) as sess:
                 np.mean(temp),np.min(temp),np.max(temp)))
             a,p,r,f = evaluation(preds_list, data_eval, eval_ids)
             logging.info("APRF: %.3f  %.3f  %.3f  %.3f"%(a,p,r,f))
-            logging.info('Last Batch Loss: %.3f'%_loss)
             os._exit(0)
+            logging.info('Last Batch Loss: %.3f'%_loss)
             logging.info('Epoch Loss: %.3f' % np.mean(np.array(epoch_loss)))
 
             # model_output = "iwslt2016_E%02dL%.2fF1%.3f" % (epoch, _loss,f)

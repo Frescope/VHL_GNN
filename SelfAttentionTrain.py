@@ -321,7 +321,7 @@ with tf.Session(config=config) as sess:
                 # preds = preds.reshape((-1))
                 # preds_list.extend(preds.tolist())
                 batch_xs, batch_ys, batch_logits, batch_loss = sess.run(
-                    [xs, ys, train_logits, loss])
+                    [xs, ys, eval_logits, loss])
                 preds_list.extend(batch_logits.reshape((-1)).tolist())
 
             temp = np.array(preds_list)

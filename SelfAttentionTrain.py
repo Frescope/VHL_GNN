@@ -307,7 +307,7 @@ with tf.Session(config=config) as sess:
         #         np.mean(_ob_grad), np.min(_ob_grad), np.max(_ob_grad))
 
         epoch = math.ceil(_gs / num_train_batches)
-        if _gs == 0:
+        if True:
         # if _gs and _gs % num_train_batches == 0:
             logging.info("\nepoch {} is done".format(epoch))
             _train_logits, _loss = sess.run([train_logits,loss]) # train loss

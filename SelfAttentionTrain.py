@@ -294,15 +294,14 @@ with tf.Session(config=config) as sess:
         # # gradient check
         logging.info("\nStep: {} Loss: {}".format(_gs, batch_loss))
         # # logging.info(len(vars_observe),len(grads_observe))
-        # for i in range(len(grads_observe)):
-            
-        # grad = [g for (g,v) in grads_observe[i]]
-        grad = grads_observe[i]
-        var = vars_observe[i]
-        logging.info("{} (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
-            v_names[i],np.mean(var),np.min(var),np.max(var)))
-        logging.info("Gradient (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}\n".format(
-            np.mean(grad),np.min(grad),np.max(grad)))
+        for i in range(len(grads_observe)):
+            grad, v_ = grads_observe[i]
+            # grad = grads_observe[i]
+            var = vars_observe[i]
+            logging.info("{} (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
+                v_names[i],np.mean(var),np.min(var),np.max(var)))
+            logging.info("Gradient (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}\n".format(
+                np.mean(grad),np.min(grad),np.max(grad)))
 
         if _gs and _gs % num_train_batches == 0:
             # evaluation

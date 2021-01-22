@@ -293,7 +293,7 @@ with tf.Session(config=config) as sess:
 
         # gradient check
         logging.info("\nStep: {} Loss: {}".format(_gs, batch_loss))
-        logging.info(len(vars_observe),len(grads_observe))
+        # logging.info(len(vars_observe),len(grads_observe))
         for i in range(len(grads_observe)):
             
             grad = [g for (g,v) in grads_observe[i]]

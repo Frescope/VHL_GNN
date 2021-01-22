@@ -282,7 +282,7 @@ with tf.Session(config=config) as sess:
             'ff_0_w', 'ff_0_b','ff_1_w','ff_1_b','ff_ln_beta','ff_ln_gamma',
             'mlp_0_w', 'mlp_0_b', 'mlp_1_w', 'mlp_1_b', 'mlp_2_w', 'mlp_2_b']
     for i in range(len(variable_names)):
-        print(i,variable_names[i],v_names[i])
+        logging.info(str(i)+' '+variable_names[i]+' '+v_names[i])
     os._exit(0)
     # grad1 = tf.gradients(loss, mlp_0_weight)
 

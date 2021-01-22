@@ -283,11 +283,11 @@ with tf.Session(config=config) as sess:
                 np.mean(batch_logits),np.min(batch_logits),np.max(batch_logits)))
         logging.info('Batch Loss: {}\n'.format(batch_loss))
         
-        print('Step: ',eval_step)
-        print('Logits: ')
-        print(batch_logits.reshape((-1)))
-        print('Label: ')
-        print(batch_ys[1].reshape((-1)))    
+        # print('Step: ',eval_step)
+        # print('Logits: ')
+        # print(batch_logits.reshape((-1)))
+        # print('Label: ')
+        # print(batch_ys[1].reshape((-1)))    
 
     a,p,r,f = evaluation(preds_list, data_eval, eval_ids)
     logging.info("APRF: %.3f  %.3f  %.3f  %.3f"%(a,p,r,f))

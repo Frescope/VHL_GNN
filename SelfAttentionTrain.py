@@ -299,6 +299,7 @@ with tf.Session(config=config) as sess:
         epoch_loss.append(batch_loss)
 
         epoch = math.ceil(_gs / num_train_batches)
+        logging.info("gs {} tb {}".format(_gs,num_train_batches))
         if _gs and _gs % num_train_batches == 0:
 
             # evaluation

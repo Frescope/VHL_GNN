@@ -232,7 +232,8 @@ data_train, data_valid, data_test = load_data(label_record)
 data_eval = data_train
 train_batches, num_train_batches, num_train_samples = get_batch_train(data_train)
 eval_batches, num_eval_batches, num_eval_samples, eval_ids = get_batch_eval(data_eval)
-
+print(data_train)
+print(data_eval)
 print('Train Batches: ',train_batches)
 print('Number of Train Batches: ',num_train_batches,'Number of Train Samples: ',num_train_samples)
 print('Evaluation Batches: ',eval_batches)

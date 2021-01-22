@@ -232,8 +232,7 @@ data_train, data_valid, data_test = load_data(label_record)
 data_eval = data_train
 train_batches, num_train_batches, num_train_samples = get_batch_train(data_train)
 eval_batches, num_eval_batches, num_eval_samples, eval_ids = get_batch_eval(data_eval)
-print(data_train)
-print(data_eval)
+
 print('Train Batches: ',train_batches)
 print('Number of Train Batches: ',num_train_batches,'Number of Train Samples: ',num_train_samples)
 print('Evaluation Batches: ',eval_batches)
@@ -270,6 +269,8 @@ with tf.Session(config=config) as sess:
         logging.info("Ckpt Loaded: {}".format(ckpt))
 
     sess.run(train_init_op)
+    print('1_x: ',xs)
+    print('1_y: ',ys)
     total_steps = hp.num_epochs * num_train_batches
     _gs = sess.run(global_step)
 
@@ -302,7 +303,8 @@ with tf.Session(config=config) as sess:
         _ob_logits = sess.run(train_logits)
         print('Step: {} Train Logits(Mean, Min, Max): {:.10f} {:.10f} {:.10f}'.format(
                 _gs, np.mean(_ob_logits),np.min(_ob_logits),np.max(_ob_logits)))
-
+        print('2_x: ',xs)
+        print('2_y: ',ys)
         # _ob_grad, _ob_loss = sess.run([grad1, loss])
         # print('Loss: ',_ob_loss, 'Gradient(Mean, Min, Max): ',
         #         np.mean(_ob_grad), np.min(_ob_grad), np.max(_ob_grad))
@@ -316,6 +318,8 @@ with tf.Session(config=config) as sess:
 
             # evaluation
             _ = sess.run(eval_init_op)
+            print('3_x: ',xs)
+            print('3_y: ',ys)
             preds_list = []
             for eval_step in range(num_eval_batches):
                 preds = sess.run(train_logits)  # (bc,seq_len)

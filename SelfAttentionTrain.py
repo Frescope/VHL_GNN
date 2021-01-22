@@ -274,24 +274,29 @@ with tf.Session(config=config) as sess:
 
     # var & gradient check
     variable_names = [v.name for v in tf.trainable_variables()]
-    # for name in variable_names:
-    #     logging.info(name)
-    # os._exit(0)
     graph = tf.get_default_graph()
     v_names = ['Q_w', 'Q_b', 'K_w', 'K_b', 'V_w', 'V_b', 'ln_beta', 'ln_gamma', 
             'ff_0_w', 'ff_0_b','ff_1_w','ff_1_b','ff_ln_beta','ff_ln_gamma',
             'mlp_0_w', 'mlp_0_b', 'mlp_1_w', 'mlp_1_b', 'mlp_2_w', 'mlp_2_b']
-    for i in range(len(variable_names)):
-        logging.info(str(i)+' '+variable_names[i]+' '+v_names[i])
-    os._exit(0)
     # grad1 = tf.gradients(loss, mlp_0_weight)
+    grads = []
+    for i in range(len(variable_names)):
+        var = graph.get_tensor_by_name(variable_names[i])
+        grads.append(tf.gradients(loss,var)) 
 
     epoch_loss = []
     for i in tqdm(range(_gs, total_steps+1)):
-        batch_loss, _, _gs = sess.run([loss, train_op, global_step])
+        grads_observe, batch_loss, _, _gs = sess.run([grads, loss, train_op, global_step])
         epoch_loss.append(batch_loss)
 
         epoch = math.ceil(_gs / num_train_batches)
+
+        # gradient check
+        logging.info("\nStep: {}".format(_gs))
+        for i in range(len(grads_observe)):
+            grad = grads_observe[i]
+            logging.info("{}(Mean, Min, Max): {:.4f} {:.4f} {:.4f}".format(
+                v_names[i],np.mean(grad),np.min(grad),np.max(grad)))
 
         if _gs and _gs % num_train_batches == 0:
             # evaluation
@@ -321,6 +326,7 @@ with tf.Session(config=config) as sess:
 
             logging.info("# fall back to train mode")
             sess.run(train_init_op)
+            os._exit(0)
 
 logging.info("Done")
 

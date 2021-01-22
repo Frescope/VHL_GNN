@@ -286,7 +286,7 @@ with tf.Session(config=config) as sess:
         print('Logits: ')
         print(batch_logits.reshape((-1)))
         print('Label: ')
-        print(ys[1].reshape((-1)))    
+        print(batch_ys[1].reshape((-1)))    
 
     a,p,r,f = evaluation(preds_list, data_eval, eval_ids)
     logging.info("APRF: %.3f  %.3f  %.3f  %.3f"%(a,p,r,f))

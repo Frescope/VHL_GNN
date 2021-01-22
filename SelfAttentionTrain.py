@@ -332,7 +332,7 @@ with tf.Session(config=config) as sess:
 
             logging.info("# fall back to train mode")
             sess.run(train_init_op)
-            os._exit(0)
+            # os._exit(0)
 
 logging.info("Done")
 

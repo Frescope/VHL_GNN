@@ -295,7 +295,7 @@ with tf.Session(config=config) as sess:
 
     epoch_loss = []
     for i in tqdm(range(_gs, total_steps+1)):
-        batch_loss, _, _gs = sess.run([loss, train_op, global_step])
+        batch_loss, _, _gs = sess.run([loss, tf.no_op(), global_step])
         epoch_loss.append(batch_loss)
 
         # _ob_logits = sess.run(train_logits)

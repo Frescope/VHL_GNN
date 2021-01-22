@@ -255,7 +255,7 @@ eval_logits = m.eval(xs,ys)
 logging.info("# Session")
 config = tf.ConfigProto(allow_soft_placement=True)
 config.gpu_options.allow_growth = True
-saver = tf.train.Saver(max_to_keep=hp.num_epochs)
+saver = tf.train.Saver(max_to_keep=hp.ckpt_num)
 with tf.Session(config=config) as sess:
     # load checkpoint:
     ckpt = tf.train.latest_checkpoint(hp.model_save_dir)
@@ -332,11 +332,13 @@ with tf.Session(config=config) as sess:
             epoch_loss.clear()
 
             # model_output = "iwslt2016_E%02dL%.2fF1%.3f" % (epoch, _loss,f)
+            model_output = "E%04dL%.3fF1%.3f" % (epoch, np.mean(np.array(epoch_loss)), f)
 
             # logging.info("# save models")
-            # ckpt_name = os.path.join(hp.model_save_dir, model_output)
-            # # saver.save(sess, ckpt_name, global_step=_gs)
-            # logging.info("after training of {} epochs, {} has been saved.".format(epoch, ckpt_name))
+            ckpt_name = os.path.join(hp.model_save_dir, model_output)
+            if epoch > hp.ckpt_epoch:
+                saver.save(sess, ckpt_name, global_step=_gs)
+                logging.info("after training of {} epochs, {} has been saved.".format(epoch, ckpt_name))
 
             # logging.info("# fall back to train mode")
             sess.run(train_init_op)

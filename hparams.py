@@ -47,8 +47,14 @@ class Hparams_selfattn:
     parser.add_argument('--batch_size', default=10, type=int)
     parser.add_argument('--lr', default=0.001, type=float, help="learning rate")
     parser.add_argument('--warmup_steps', default=1000, type=int)
-    parser.add_argument('--num_epochs', default=2000, type=int)
+    parser.add_argument('--num_epochs', default=1000, type=int)
     parser.add_argument('--load_ckpt', default=False, type=bool)
+
+    # checkpoint
+    parser.add_argument('--ckpt_epoch', default=500, type=int,
+                        help="Start to save ckpt")
+    parser.add_argument('--ckpt_num', default=30, type=int,
+                        help="number of ckpt to keep")
 
     # model
     parser.add_argument('--d_model', default=512, type=int,

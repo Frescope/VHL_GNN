@@ -274,28 +274,17 @@ with tf.Session(config=config) as sess:
 
     # var & gradient check
     variable_names = [v.name for v in tf.trainable_variables()]
-    for name in variable_names:
-        logging.info(name)
-    os._exit(0)
+    # for name in variable_names:
+    #     logging.info(name)
+    # os._exit(0)
     graph = tf.get_default_graph()
-    var_observe = []
-    mlp_0_weight = graph.get_tensor_by_name('final_mlp/dense/kernel:0')
-    var_observe.append(mlp_0_weight)
-    mlp_1_weight = graph.get_tensor_by_name('final_mlp/dense_1/kernel:0')
-    var_observe.append(mlp_1_weight)
-    mlp_2_weight = graph.get_tensor_by_name('final_mlp/dense_2/kernel:0')
-    var_observe.append(mlp_2_weight)
-    # encoder_ff_0 = graph.get_tensor_by_name('encoder/num_blocks_0/positionwise_feedforward/dense/kernel:0')
-    # var_observe.append(encoder_ff_0)
-    # encoder_ff_1 = graph.get_tensor_by_name('encoder/num_blocks_0/positionwise_feedforward/dense_1/kernel:0')
-    # var_observe.append(encoder_ff_1)
-    # encoder_attention_0 = graph.get_tensor_by_name('encoder/num_blocks_0/multihead_attention/dense/kernel:0')
-    # var_observe.append(encoder_attention_0)
-    # encoder_attention_1 = graph.get_tensor_by_name('encoder/num_blocks_0/multihead_attention/dense_1/kernel:0')
-    # var_observe.append(encoder_attention_1)
-    # encoder_attention_2 = graph.get_tensor_by_name('encoder/num_blocks_0/multihead_attention/dense_2/kernel:0')
-    # var_observe.append(encoder_attention_2)
-    grad1 = tf.gradients(loss, mlp_2_weight)
+    v_names = ['Q_w', 'Q_b', 'K_w', 'K_b', 'V_w', 'V_b', 'ln_beta', 'ln_gamma', 
+            'ff_0_w', 'ff_0_b','ff_1_w','ff_1_b','ff_ln_beta','ff_ln_gamma',
+            'mlp_0_w', 'mlp_0_b', 'mlp_1_w', 'mlp_1_b', 'mlp_2_w', 'mlp_2_b']
+    for i in range(len(variable_names)):
+        print(i,variable_names[i],v_names[i])
+    os._exit(0)
+    # grad1 = tf.gradients(loss, mlp_0_weight)
 
     epoch_loss = []
     for i in tqdm(range(_gs, total_steps+1)):

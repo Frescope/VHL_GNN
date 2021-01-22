@@ -278,8 +278,6 @@ with tf.Session(config=config) as sess:
         preds_list.extend(batch_logits.tolist())
 
         logging.info('Step: {}'.format(eval_step))
-        a,p,r,f = evaluation(preds_list, data_eval, eval_ids)
-        logging.info("APRF: %.3f  %.3f  %.3f  %.3f"%(a,p,r,f))
         logging.info('Batch Logits(Mean, Min, Max): {:.10f} {:.10f} {:.10f}'.format(
                 np.mean(batch_logits),np.min(batch_logits),np.max(batch_logits)))
         logging.info('Batch Loss: {}\n'.format(batch_loss))
@@ -290,4 +288,6 @@ with tf.Session(config=config) as sess:
         print('Label: ')
         print(ys[1].reshape((-1)))    
 
+    a,p,r,f = evaluation(preds_list, data_eval, eval_ids)
+    logging.info("APRF: %.3f  %.3f  %.3f  %.3f"%(a,p,r,f))
     logging.info('Done !')

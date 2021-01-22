@@ -275,7 +275,8 @@ with tf.Session(config=config) as sess:
     # var & gradient check
     variable_names = [v.name for v in tf.trainable_variables()]
     for name in variable_names:
-        print(name)
+        logging.info(name)
+    os._exit(0)
     graph = tf.get_default_graph()
     var_observe = []
     mlp_0_weight = graph.get_tensor_by_name('final_mlp/dense/kernel:0')

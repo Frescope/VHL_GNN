@@ -298,9 +298,9 @@ with tf.Session(config=config) as sess:
         # batch_loss, _, _gs = sess.run([loss, train_op, global_step])
         # epoch_loss.append(batch_loss)
 
-        # _ob_logits = sess.run(train_logits)
-        # print('Step: {} Train Logits(Mean, Min, Max): {:.10f} {:.10f} {:.10f}'.format(
-        #         _gs, np.mean(_ob_logits),np.min(_ob_logits),np.max(_ob_logits)))
+        _ob_logits = sess.run(train_logits)
+        print('Step: {} Train Logits(Mean, Min, Max): {:.10f} {:.10f} {:.10f}'.format(
+                _gs, np.mean(_ob_logits),np.min(_ob_logits),np.max(_ob_logits)))
 
         # _ob_grad, _ob_loss = sess.run([grad1, loss])
         # print('Loss: ',_ob_loss, 'Gradient(Mean, Min, Max): ',

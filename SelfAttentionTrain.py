@@ -291,7 +291,7 @@ with tf.Session(config=config) as sess:
         epoch = math.ceil(_gs / num_train_batches)
 
         # gradient check
-        logging.info("\nStep: {}".format(_gs))
+        logging.info("\nStep: {} Loss: {}".format(_gs, batch_loss))
         for i in range(len(grads_observe)):
             grad = grads_observe[i]
             var = vars_observe[i]

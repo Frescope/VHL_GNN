@@ -259,12 +259,14 @@ saver = tf.train.Saver(max_to_keep=hp.ckpt_num)
 with tf.Session(config=config) as sess:
     # load checkpoint:
     ckpt = tf.train.latest_checkpoint(hp.model_save_dir)
+    # ckpt = os.path.join(hp.model_save_dir, "")
     if ckpt is None or hp.load_ckpt == False:
         logging.info("Initializing from scratch")
         sess.run(tf.global_variables_initializer())
         # save_variable_specs(os.path.join(hp.logdir, "specs"))
     else:
         saver.restore(sess, ckpt)
+        logging.info("Ckpt Loaded: {}".format(ckpt))
 
     sess.run(train_init_op)
     total_steps = hp.num_epochs * num_train_batches
@@ -329,10 +331,10 @@ with tf.Session(config=config) as sess:
             logging.info("APRF: %.3f  %.3f  %.3f  %.3f"%(a,p,r,f))
             logging.info('Last Batch Loss: %.3f'%_loss)
             logging.info('Epoch Loss: %.3f' % np.mean(np.array(epoch_loss)))
-            epoch_loss.clear()
 
             # model_output = "iwslt2016_E%02dL%.2fF1%.3f" % (epoch, _loss,f)
             model_output = "E%04dL%.3fF1%.3f" % (epoch, np.mean(np.array(epoch_loss)), f)
+            epoch_loss.clear()
 
             # logging.info("# save models")
             ckpt_name = os.path.join(hp.model_save_dir, model_output)

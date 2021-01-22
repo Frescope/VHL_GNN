@@ -44,7 +44,7 @@ class Hparams_selfattn:
     parser = argparse.ArgumentParser()
 
     # training
-    parser.add_argument('--batch_size', default=1, type=int)
+    parser.add_argument('--batch_size', default=10, type=int)
     parser.add_argument('--lr', default=0.0001, type=float, help="learning rate")
     parser.add_argument('--warmup_steps', default=1000, type=int)
     parser.add_argument('--num_epochs', default=1000, type=int)

@@ -299,9 +299,8 @@ with tf.Session(config=config) as sess:
         epoch_loss.append(batch_loss)
 
         epoch = math.ceil(_gs / num_train_batches)
-        logging.info("gs {} tb {}".format(_gs,num_train_batches))
-        if _gs and _gs % num_train_batches == 0:
 
+        if _gs and _gs % num_train_batches == 0:
             # evaluation
             _ = sess.run(eval_init_op)
             preds_list = []
@@ -313,7 +312,7 @@ with tf.Session(config=config) as sess:
             # logging.info('Preds(Mean, Min, Max): {:.10f} {:.10f} {:.10f}'.format(
             #     np.mean(temp),np.min(temp),np.max(temp)))
             a,p,r,f = evaluation(preds_list, data_eval, eval_ids)
-            logging.info("APRF: %.3f  %.3f  %.3f  %.3f"%(a,p,r,f))
+            logging.info("\nAPRF: %.3f  %.3f  %.3f  %.3f"%(a,p,r,f))
 
             logging.info('Last Batch Loss: %.3f' % batch_loss)
             logging.info('Epoch Loss: %.3f' % np.mean(np.array(epoch_loss)))

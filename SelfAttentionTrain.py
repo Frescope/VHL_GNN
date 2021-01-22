@@ -296,7 +296,8 @@ with tf.Session(config=config) as sess:
         # logging.info(len(vars_observe),len(grads_observe))
         for i in range(len(grads_observe)):
             
-            grad = [g for (g,v) in grads_observe[i]]
+            # grad = [g for (g,v) in grads_observe[i]]
+            grad = grads_observe[i]
             var = vars_observe[i]
             logging.info("{} (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
                 v_names[i],np.mean(var),np.min(var),np.max(var)))

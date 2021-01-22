@@ -271,13 +271,23 @@ with tf.Session(config=config) as sess:
     _gs = sess.run(global_step)
 
     # check input, loss, train logits, prediction, label of every batch
+    preds_list = []
     for eval_step in range(num_eval_batches):
         batch_xs, batch_ys, batch_logits, batch_loss = sess.run(
             [xs, ys, train_logits, loss])
+        preds_list.extend(batch_logits.to_list())
+
         logging.info('Step: {}'.format(eval_step))
+        a,p,r,f = evaluation(preds_list, data_eval, eval_ids)
+        logging.info("APRF: %.3f  %.3f  %.3f  %.3f"%(a,p,r,f))
         logging.info('Batch Logits(Mean, Min, Max): {:.10f} {:.10f} {:.10f}'.format(
                 np.mean(batch_logits),np.min(batch_logits),np.max(batch_logits)))
-        logging.info('Batch Loss: {}'.format(batch_loss))
-        print(batch_logits.shape)
-    
+        logging.info('Batch Loss: {}\n'.format(batch_loss))
+        
+        print('Step: ',eval_step)
+        print('Logits: ')
+        print(batch_logits.reshape((-1)))
+        print('Label: ')
+        print(ys[1].reshape((-1)))    
+
     logging.info('Done !')

@@ -316,24 +316,19 @@ with tf.Session(config=config) as sess:
             # evaluation
             _ = sess.run(eval_init_op)
             preds_list = []
-            preds_list2 = []
             for eval_step in range(num_eval_batches):
-                # preds = sess.run(eval_logits)  # (bc,seq_len)
-                # preds = preds.reshape((-1))
-                # preds_list.extend(preds.tolist())
-                batch_xs, batch_ys, batch_logits, batch_loss = sess.run(
-                    [xs, ys, eval_logits, loss])
-                preds2 = batch_logits.reshape((-1))
-                preds_list2.extend(preds2.tolist())
-                preds_list.extend(batch_logits.reshape((-1)).tolist())
+                preds = sess.run(eval_logits)  # (bc,seq_len)
+                preds = preds.reshape((-1))
+                preds_list.extend(preds.tolist())
+                # batch_xs, batch_ys, batch_logits, batch_loss = sess.run(
+                #     [xs, ys, eval_logits, loss])
+                # preds_list.extend(batch_logits.reshape((-1)).tolist())
 
             temp = np.array(preds_list)
             logging.info('Preds(Mean, Min, Max): {:.10f} {:.10f} {:.10f}'.format(
                 np.mean(temp),np.min(temp),np.max(temp)))
             a,p,r,f = evaluation(preds_list, data_eval, eval_ids)
             logging.info("APRF: %.3f  %.3f  %.3f  %.3f"%(a,p,r,f))
-            a,p,r,f = evaluation(preds_list2, data_eval, eval_ids)
-            logging.info("APRF2: %.3f  %.3f  %.3f  %.3f"%(a,p,r,f))
             os._exit(0)
             logging.info('Last Batch Loss: %.3f'%_loss)
             logging.info('Epoch Loss: %.3f' % np.mean(np.array(epoch_loss)))

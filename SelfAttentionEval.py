@@ -278,5 +278,6 @@ with tf.Session(config=config) as sess:
         logging.info('Batch Logits(Mean, Min, Max): {:.10f} {:.10f} {:.10f}'.format(
                 np.mean(batch_logits),np.min(batch_logits),np.max(batch_logits)))
         logging.info('Batch Loss: {}'.format(batch_loss))
+        print(batch_logits.shape)
     
     logging.info('Done !')

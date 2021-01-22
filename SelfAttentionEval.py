@@ -219,8 +219,7 @@ def evaluation(preds_list, data_eval, eval_ids):
     p = precision_score(label_true_all, label_pred_all)
     r = recall_score(label_true_all, label_pred_all)
     f = f1_score(label_true_all, label_pred_all)
-    for i in range(len(label_true_all)):
-        print(i,'Pred: ',label_pred_all[i],'True: ',label_true_all[i])
+    print(np.sum(label_true_all),np.sum(label_pred_all))
     return a,p,r,f
 
 logging.info("# Prepare training batches")

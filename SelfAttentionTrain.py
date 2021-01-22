@@ -281,60 +281,62 @@ with tf.Session(config=config) as sess:
     grads = []
     for i in range(len(variable_names)):
         var = graph.get_tensor_by_name(variable_names[i])
-        grads.append(tf.gradients(loss,var)) 
+        grad = tf.gradients(loss,var)
+        grads.append(grad) 
+        print(grad)
 
-    epoch_loss = []
-    for i in tqdm(range(_gs, total_steps+1)):
-        vars_observe_o, grads_observe_o, vars_observe, grads_observe, batch_loss, _, _gs = sess.run([train_vars, train_grads, variable_names, grads, loss, train_op, global_step])
-        epoch_loss.append(batch_loss)
+#     epoch_loss = []
+#     for i in tqdm(range(_gs, total_steps+1)):
+#         vars_observe_o, grads_observe_o, vars_observe, grads_observe, batch_loss, _, _gs = sess.run([train_vars, train_grads, variable_names, grads, loss, train_op, global_step])
+#         epoch_loss.append(batch_loss)
 
-        epoch = math.ceil(_gs / num_train_batches)
+#         epoch = math.ceil(_gs / num_train_batches)
 
-        # gradient check
-        logging.info("\nStep: {} Loss: {}".format(_gs, batch_loss))
-        for i in range(len(grads_observe)):
-            grad = grads_observe[i]
-            var = vars_observe[i]
-            grad_o = grads_observe_o[i]
-            var_o = vars_observe_o[i]
-            logging.info("{} (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
-                v_names[i],np.mean(var_o),np.min(var_o),np.max(var_o)))
-            logging.info("{} (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
-                v_names[i],np.mean(var),np.min(var),np.max(var)))
-            logging.info("Gradient (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
-                np.mean(grad_o),np.min(grad_o),np.max(grad_o)))
-            logging.info("Gradient (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}\n".format(
-                np.mean(grad),np.min(grad),np.max(grad)))
+#         # gradient check
+#         logging.info("\nStep: {} Loss: {}".format(_gs, batch_loss))
+#         for i in range(len(grads_observe)):
+#             grad = grads_observe[i]
+#             var = vars_observe[i]
+#             grad_o = grads_observe_o[i]
+#             var_o = vars_observe_o[i]
+#             logging.info("{} (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
+#                 v_names[i],np.mean(var_o),np.min(var_o),np.max(var_o)))
+#             logging.info("{} (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
+#                 v_names[i],np.mean(var),np.min(var),np.max(var)))
+#             logging.info("Gradient (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
+#                 np.mean(grad_o),np.min(grad_o),np.max(grad_o)))
+#             logging.info("Gradient (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}\n".format(
+#                 np.mean(grad),np.min(grad),np.max(grad)))
 
-        if _gs and _gs % num_train_batches == 0:
-            # evaluation
-            _ = sess.run(eval_init_op)
-            preds_list = []
-            for eval_step in range(num_eval_batches):
-                preds = sess.run(eval_logits)  # (bc,seq_len)
-                preds_list.extend(preds.reshape((-1)).tolist())
+#         if _gs and _gs % num_train_batches == 0:
+#             # evaluation
+#             _ = sess.run(eval_init_op)
+#             preds_list = []
+#             for eval_step in range(num_eval_batches):
+#                 preds = sess.run(eval_logits)  # (bc,seq_len)
+#                 preds_list.extend(preds.reshape((-1)).tolist())
 
-            # temp = np.array(preds_list)
-            # logging.info('Preds(Mean, Min, Max): {:.10f} {:.10f} {:.10f}'.format(
-            #     np.mean(temp),np.min(temp),np.max(temp)))
-            a,p,r,f = evaluation(preds_list, data_eval, eval_ids)
-            logging.info("\nAPRF: %.3f  %.3f  %.3f  %.3f"%(a,p,r,f))
+#             # temp = np.array(preds_list)
+#             # logging.info('Preds(Mean, Min, Max): {:.10f} {:.10f} {:.10f}'.format(
+#             #     np.mean(temp),np.min(temp),np.max(temp)))
+#             a,p,r,f = evaluation(preds_list, data_eval, eval_ids)
+#             logging.info("\nAPRF: %.3f  %.3f  %.3f  %.3f"%(a,p,r,f))
 
-            logging.info('Last Batch Loss: %.3f' % batch_loss)
-            logging.info('Epoch Loss: %.3f' % np.mean(np.array(epoch_loss)))
+#             logging.info('Last Batch Loss: %.3f' % batch_loss)
+#             logging.info('Epoch Loss: %.3f' % np.mean(np.array(epoch_loss)))
 
-            model_output = "E%04dL%.3fF1%.3f" % (epoch, np.mean(np.array(epoch_loss)), f)
-            epoch_loss.clear()
+#             model_output = "E%04dL%.3fF1%.3f" % (epoch, np.mean(np.array(epoch_loss)), f)
+#             epoch_loss.clear()
 
-            # logging.info("# save models")
-            ckpt_name = os.path.join(hp.model_save_dir, model_output)
-            if epoch > hp.ckpt_epoch:
-                saver.save(sess, ckpt_name, global_step=_gs)
-                logging.info("after training of {} epochs, {} has been saved.".format(epoch, ckpt_name))
+#             # logging.info("# save models")
+#             ckpt_name = os.path.join(hp.model_save_dir, model_output)
+#             if epoch > hp.ckpt_epoch:
+#                 saver.save(sess, ckpt_name, global_step=_gs)
+#                 logging.info("after training of {} epochs, {} has been saved.".format(epoch, ckpt_name))
 
-            logging.info("# fall back to train mode")
-            sess.run(train_init_op)
-            os._exit(0)
+#             logging.info("# fall back to train mode")
+#             sess.run(train_init_op)
+#             os._exit(0)
 
-logging.info("Done")
+# logging.info("Done")
 

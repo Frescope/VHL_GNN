@@ -325,18 +325,15 @@ with tf.Session(config=config) as sess:
                 preds = sess.run(train_logits)  # (bc,seq_len)
                 preds = preds.reshape((-1))
                 preds_list.extend(preds.tolist())
-                # batch_xs, batch_ys, batch_logits, batch_loss = sess.run(
-                #     [xs, ys, eval_logits, loss])
-                # preds_list.extend(batch_logits.reshape((-1)).tolist())
 
             temp = np.array(preds_list)
             logging.info('Preds(Mean, Min, Max): {:.10f} {:.10f} {:.10f}'.format(
                 np.mean(temp),np.min(temp),np.max(temp)))
             a,p,r,f = evaluation(preds_list, data_eval, eval_ids)
             logging.info("APRF: %.3f  %.3f  %.3f  %.3f"%(a,p,r,f))
-            os._exit(0)
-            logging.info('Last Batch Loss: %.3f'%_loss)
-            logging.info('Epoch Loss: %.3f' % np.mean(np.array(epoch_loss)))
+
+            # logging.info('Last Batch Loss: %.3f'%_loss)
+            # logging.info('Epoch Loss: %.3f' % np.mean(np.array(epoch_loss)))
 
             # model_output = "iwslt2016_E%02dL%.2fF1%.3f" % (epoch, _loss,f)
             model_output = "E%04dL%.3fF1%.3f" % (epoch, np.mean(np.array(epoch_loss)), f)

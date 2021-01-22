@@ -146,9 +146,9 @@ def multihead_attention(queries, keys, values, key_masks,
     d_model = queries.get_shape().as_list()[-1]
     with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
         # Linear projections
-        Q = tf.layers.dense(queries, d_model, use_bias=True)  # (N, T_q, d_model)
-        K = tf.layers.dense(keys, d_model, use_bias=True)  # (N, T_k, d_model)
-        V = tf.layers.dense(values, d_model, use_bias=True)  # (N, T_k, d_model)
+        Q = tf.layers.dense(queries, d_model, use_bias=True, scope='Q_dense')  # (N, T_q, d_model)
+        K = tf.layers.dense(keys, d_model, use_bias=True, scope='K_dense')  # (N, T_k, d_model)
+        V = tf.layers.dense(values, d_model, use_bias=True, scope='V_dense')  # (N, T_k, d_model)
 
         # Split and concat
         Q_ = tf.concat(tf.split(Q, num_heads, axis=2), axis=0)  # (h*N, T_q, d_model/h)
@@ -179,10 +179,10 @@ def ff(inputs, num_units, scope="positionwise_feedforward"):
     '''
     with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
         # Inner layer
-        outputs = tf.layers.dense(inputs, num_units[0], activation=tf.nn.relu)
+        outputs = tf.layers.dense(inputs, num_units[0], activation=tf.nn.relu, scope='Inner_dense')
 
         # Outer layer
-        outputs = tf.layers.dense(outputs, num_units[1])
+        outputs = tf.layers.dense(outputs, num_units[1], scope='Outer_dense')
 
         # Residual connection
         outputs += inputs
@@ -243,9 +243,9 @@ class Self_attention:
         # input: memroy(?,seq_len,d_model)
         # output: logits(?,seq_len)
         with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
-            logits = tf.layers.dense(memory, self.hp.d_ff, activation=tf.nn.relu)
-            logits = tf.layers.dense(logits, self.hp.d_model, activation=tf.nn.relu)
-            logits = tf.layers.dense(logits, 1)
+            logits = tf.layers.dense(memory, self.hp.d_ff, activation=tf.nn.relu, scope='Inner_dense')
+            logits = tf.layers.dense(logits, self.hp.d_model, activation=tf.nn.relu, scope='Hidden_dense')
+            logits = tf.layers.dense(logits, 1, scope='Outer_dense')
             logits = tf.squeeze(logits)
         return logits
 

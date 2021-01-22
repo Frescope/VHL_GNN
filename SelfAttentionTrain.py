@@ -283,7 +283,6 @@ with tf.Session(config=config) as sess:
         var = graph.get_tensor_by_name(variable_names[i])
         grad = tf.gradients(loss,var)
         grads.append(grad) 
-        print(grad)
 
 #     epoch_loss = []
 #     for i in tqdm(range(_gs, total_steps+1)):

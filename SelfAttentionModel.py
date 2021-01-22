@@ -274,6 +274,9 @@ class Self_attention:
         gradient = optimizer.compute_gradients(loss, varlist)
         gradient_clip = [(tf.clip_by_value(grad, -5.0, 5.0), var) for grad, var in gradient]
         train_op = optimizer.apply_gradients(gradient_clip, global_step=global_step)
+        print(gradient)
+        print('\n\n')
+        print(gradient_clip)
         
         return varlist, gradient, logits, loss, train_op, global_step
 

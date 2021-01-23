@@ -292,12 +292,12 @@ with tf.Session(config=config) as sess:
         epoch = math.ceil(_gs / num_train_batches)
 
         # gradient check
-        logging.info("\nStep: {} Loss: {}".format(_gs, batch_loss))
-        input_observe = input_observe.reshape((10,512)).mean(axis=1)
-        logging.info(str(input_observe.reshape((-1))))
-        logging.info("{} Mean, Min, Max: {:.6f} {:.6f} {:.6f}".format(
-            str(batch_logits.shape), np.mean(batch_logits), np.min(batch_logits), np.max(batch_logits)))
-        logging.info(str(batch_logits.reshape((-1))))
+        # logging.info("\nStep: {} Loss: {}".format(_gs, batch_loss))
+        # input_observe = input_observe.reshape((10,512)).mean(axis=1)
+        # logging.info(str(input_observe.reshape((-1))))
+        # logging.info("{} Mean, Min, Max: {:.6f} {:.6f} {:.6f}".format(
+        #     str(batch_logits.shape), np.mean(batch_logits), np.min(batch_logits), np.max(batch_logits)))
+        # logging.info(str(batch_logits.reshape((-1))))
         # for i in range(len(grads_observe)):
         #     grad, v_ = grads_observe[i]
         #     var = vars_observe[i]
@@ -336,6 +336,7 @@ with tf.Session(config=config) as sess:
 
             logging.info("# fall back to train mode")
             sess.run(train_init_op)
+            os._exit(0)
 
 logging.info("Done")
 

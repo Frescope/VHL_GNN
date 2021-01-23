@@ -266,14 +266,14 @@ class Self_attention:
 
         global_step = tf.train.get_or_create_global_step()
         lr = noam_scheme(self.hp.lr, global_step, self.hp.warmup_steps)
-        optimizer = tf.train.AdamOptimizer(self.hp.lr)
+        optimizer = tf.train.AdamOptimizer(lr)
         
         # train_op = optimizer.minimize(loss, global_step=global_step)
         
         varlist = tf.trainable_variables()
         gradient = optimizer.compute_gradients(loss, varlist)
-        gradient_clip = [(tf.clip_by_value(grad, -5.0, 5.0), var) for grad, var in gradient]
-        train_op = optimizer.apply_gradients(gradient_clip, global_step=global_step)
+        # gradient_clip = [(tf.clip_by_value(grad, -5.0, 5.0), var) for grad, var in gradient]
+        train_op = optimizer.apply_gradients(gradient, global_step=global_step)
         
         return varlist, gradient, logits, loss, train_op, global_step
 

@@ -292,19 +292,19 @@ with tf.Session(config=config) as sess:
         epoch = math.ceil(_gs / num_train_batches)
 
         # gradient check
-        # logging.info("\nStep: {} Loss: {}".format(_gs, batch_loss))
-        # logging.info("{} Mean, Min, Max: {:.6f} {:.6f} {:.6f}".format(
-        #     str(batch_logits.shape), np.mean(batch_logits), np.min(batch_logits), np.max(batch_logits)))
-        # logging.info(str(batch_logits.reshape((-1))))
-        # for i in range(len(grads_observe)):
-        #     grad, v_ = grads_observe[i]
-        #     var = vars_observe[i]
-        #     logging.info("{} (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
-        #         v_names[i],np.mean(var),np.min(var),np.max(var)))
-        #     logging.info("Gradient (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
-        #         np.mean(grad),np.min(grad),np.max(grad)))
-        # if _gs == 5:
-        #     os._exit(0)
+        logging.info("\nStep: {} Loss: {}".format(_gs, batch_loss))
+        logging.info("{} Mean, Min, Max: {:.6f} {:.6f} {:.6f}".format(
+            str(batch_logits.shape), np.mean(batch_logits), np.min(batch_logits), np.max(batch_logits)))
+        logging.info(str(batch_logits.reshape((-1))))
+        for i in range(len(grads_observe)):
+            grad, v_ = grads_observe[i]
+            var = vars_observe[i]
+            # logging.info("{} (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
+            #     v_names[i],np.mean(var),np.min(var),np.max(var)))
+            logging.info("Gradient (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
+                np.mean(grad),np.min(grad),np.max(grad)))
+        if _gs == 50:
+            os._exit(0)
 
         if _gs and _gs % num_train_batches == 0:
             # evaluation

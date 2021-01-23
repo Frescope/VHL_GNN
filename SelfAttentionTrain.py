@@ -3,6 +3,7 @@
 import os
 import time
 import numpy as np
+from numpy.core import shape_base
 import tensorflow as tf
 import math
 import json
@@ -248,7 +249,7 @@ eval_init_op = iter.make_initializer(eval_batches)
 # build the graph
 logging.info("# Load model")
 m = Self_attention(hp)
-train_vars, train_grads, train_logits, loss, train_op, global_step = m.train(xs,ys)
+feat_obs, train_vars, train_grads, train_logits, loss, train_op, global_step = m.train(xs,ys)
 eval_logits = m.eval(xs,ys)
 
 # config session
@@ -286,15 +287,16 @@ with tf.Session(config=config) as sess:
 
     epoch_loss = []
     for i in tqdm(range(_gs, total_steps+1)):
-        input_observe, vars_observe, grads_observe, batch_logits, batch_loss, _, _gs = sess.run([xs, train_vars, train_grads, train_logits, loss, train_op, global_step])
+        feat_observe, vars_observe, grads_observe, batch_logits, batch_loss, _, _gs = sess.run([feat_obs, train_vars, train_grads, train_logits, loss, train_op, global_step])
         epoch_loss.append(batch_loss)
 
         epoch = math.ceil(_gs / num_train_batches)
 
         # gradient check
         logging.info("\nStep: {} Loss: {}".format(_gs, batch_loss))
-        input_observe = input_observe.reshape((10,512)).mean(axis=1)
-        logging.info(str(input_observe.reshape((-1))))
+        logging.info(str(feat_observe[0].shape)+"\t"+str(feat_observe[1].shape)+"\t"+
+                    str(feat_observe[2].shape)+"\t"+str(feat_observe[3].shape)
+                    )
         logging.info("{} Mean, Min, Max: {:.6f} {:.6f} {:.6f}".format(
             str(batch_logits.shape), np.mean(batch_logits), np.min(batch_logits), np.max(batch_logits)))
         logging.info(str(batch_logits.reshape((-1))))
@@ -305,7 +307,7 @@ with tf.Session(config=config) as sess:
             #     v_names[i],np.mean(var),np.min(var),np.max(var)))
             # logging.info("Gradient (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
             #     np.mean(grad),np.min(grad),np.max(grad)))
-        if _gs == 500:
+        if _gs == 10:
             os._exit(0)
 
         if _gs and _gs % num_train_batches == 0:

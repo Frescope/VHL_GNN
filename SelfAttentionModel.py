@@ -208,6 +208,7 @@ class Self_attention:
 
     def encode(self, xs, training=True):
         # return: memory(?,seq_len,d_model)
+
         with tf.variable_scope('encoder', reuse=tf.AUTO_REUSE):
             x = xs  # (bc,seq_len,d_model)
 
@@ -218,8 +219,11 @@ class Self_attention:
             # embedding，encoder中直接使用嵌入的向量，没有嵌入步骤
             enc = x
             enc *= self.hp.d_model ** 0.5  # scale
+            feat_ob1 = enc
             enc += positional_encoding(enc, self.hp)
+            feat_ob2 = enc
             enc = tf.layers.dropout(enc, self.hp.dropout_rate, training=training)
+            feat_ob3 = enc
 
             # blocks
             for i in range(self.hp.num_blocks):
@@ -237,7 +241,8 @@ class Self_attention:
                     enc = ff(enc, num_units=[self.hp.d_ff, self.hp.d_model])
 
         memory = enc
-        return memory
+        feat_ob4 = enc
+        return memory, [feat_ob1, feat_ob2, feat_ob3, feat_ob4]
 
     def mlp(self,memory, scope="final_mlp"):
         # input: memroy(?,seq_len,d_model)
@@ -253,7 +258,7 @@ class Self_attention:
         # input: xs: x(bc,seq_len,d_model)
         #        ys: scores(bc,seq_len), labels(bc,seq_len)
 
-        memory = self.encode(xs)
+        memory, feat_obs = self.encode(xs)
         # memory=  xs
         # memory = tf.reshape(memory, [tf.shape(memory)[0], tf.shape(memory)[1], 512])
         logits = self.mlp(memory)
@@ -275,7 +280,7 @@ class Self_attention:
         # gradient_clip = [(tf.clip_by_value(grad, -5.0, 5.0), var) for grad, var in gradient]
         train_op = optimizer.apply_gradients(gradient, global_step=global_step)
         
-        return varlist, gradient, logits, loss, train_op, global_step
+        return feat_obs, varlist, gradient, logits, loss, train_op, global_step
 
     def eval(self, xs, ys):
         # input: xs: x(bc,seq_len,d_model)

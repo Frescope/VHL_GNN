@@ -281,7 +281,8 @@ class Self_attention:
         varlist = tf.trainable_variables()
         gradient = optimizer.compute_gradients(loss, varlist)
         # gradient_clip = [(tf.clip_by_value(grad, -5.0, 5.0), var) for grad, var in gradient]
-        train_op = optimizer.apply_gradients(gradient, global_step=global_step)
+        # train_op = optimizer.apply_gradients(gradient, global_step=global_step)
+        train_op = optimizer.minimize(loss,global_step=global_step)
         
         return enc_feat_obs, mlp_feat_obs, varlist, gradient, logits, loss, train_op, global_step
 

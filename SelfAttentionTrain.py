@@ -286,14 +286,15 @@ with tf.Session(config=config) as sess:
 
     epoch_loss = []
     for i in tqdm(range(_gs, total_steps+1)):
-        vars_observe, grads_observe, batch_loss, _, _gs = sess.run([train_vars, train_grads, loss, train_op, global_step])
+        vars_observe, grads_observe, batch_logits, batch_loss, _, _gs = sess.run([train_vars, train_grads, train_logits, loss, train_op, global_step])
         epoch_loss.append(batch_loss)
 
         epoch = math.ceil(_gs / num_train_batches)
 
         # # gradient check
         logging.info("\nStep: {} Loss: {}".format(_gs, batch_loss))
-        # # logging.info(len(vars_observe),len(grads_observe))
+        logging.info("{} Mean, Min, Max: {:.6f} {:.6f} {:.6f}".format(
+            str(batch_logits.shape), np.mean(batch_logits), np.min(batch_logits), np.max(batch_logits)))
         for i in range(len(grads_observe)):
             grad, v_ = grads_observe[i]
             var = vars_observe[i]
@@ -301,6 +302,9 @@ with tf.Session(config=config) as sess:
                 v_names[i],np.mean(var),np.min(var),np.max(var)))
             logging.info("Gradient (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
                 np.mean(grad),np.min(grad),np.max(grad)))
+
+        if _gs == 5:
+            os._exit(0)
 
         if _gs and _gs % num_train_batches == 0:
             # evaluation
@@ -330,7 +334,6 @@ with tf.Session(config=config) as sess:
 
             logging.info("# fall back to train mode")
             sess.run(train_init_op)
-            os._exit(0)
 
 logging.info("Done")
 

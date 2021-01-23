@@ -311,7 +311,7 @@ with tf.Session(config=config) as sess:
                 v_names[i],np.mean(var),np.min(var),np.max(var)))
             logging.info("Gradient (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
                 np.mean(grad),np.min(grad),np.max(grad)))
-        if _gs >= 1323:
+        if _gs >= 1325:
             os._exit(0)
 
         if _gs and _gs % num_train_batches == 0:

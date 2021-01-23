@@ -252,7 +252,7 @@ class Self_attention:
             feat_ob1 = logits
             logits = tf.layers.dense(logits, self.hp.d_model, activation=tf.nn.relu, name='Hidden_dense')
             feat_ob2 = logits
-            logits = tf.layers.dense(logits, 1, name='Outer_dense')
+            logits = tf.layers.dense(logits, 1, activation=tf.nn.relu, name='Outer_dense')
             feat_ob3 = logits
             logits = tf.squeeze(logits)
         return logits, [feat_ob1, feat_ob2, feat_ob3]

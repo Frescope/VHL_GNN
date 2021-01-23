@@ -295,6 +295,7 @@ with tf.Session(config=config) as sess:
         logging.info("\nStep: {} Loss: {}".format(_gs, batch_loss))
         logging.info("{} Mean, Min, Max: {:.6f} {:.6f} {:.6f}".format(
             str(batch_logits.shape), np.mean(batch_logits), np.min(batch_logits), np.max(batch_logits)))
+        logging.info(str(batch_logits.reshape((-1))))
         for i in range(len(grads_observe)):
             grad, v_ = grads_observe[i]
             var = vars_observe[i]

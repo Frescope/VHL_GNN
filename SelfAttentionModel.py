@@ -259,6 +259,8 @@ class Self_attention:
         #        ys: scores(bc,seq_len), labels(bc,seq_len)
 
         memory, feat_obs = self.encode(xs)
+        print(memory,'\n\n')
+        print(feat_obs,'\n\n')
         # memory=  xs
         # memory = tf.reshape(memory, [tf.shape(memory)[0], tf.shape(memory)[1], 512])
         logits = self.mlp(memory)

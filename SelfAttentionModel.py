@@ -157,6 +157,7 @@ def multihead_attention(queries, keys, values, key_masks,
 
         # Attention
         outputs = scaled_dot_product_attention(Q_, K_, V_, key_masks, causality, dropout_rate, training)
+        feat_ob0 = outputs
 
         # Restore shape
         outputs = tf.concat(tf.split(outputs, num_heads, axis=0), axis=2)  # (N, T_q, d_model)
@@ -167,7 +168,7 @@ def multihead_attention(queries, keys, values, key_masks,
         # Normalize
         # outputs = ln(outputs)
 
-    return outputs
+    return outputs, [Q,K,V,Q_,K_,V_,feat_ob0]
 
 def ff(inputs, num_units, scope="positionwise_feedforward"):
     '''position-wise feed forward net. See 3.3
@@ -219,17 +220,14 @@ class Self_attention:
             # embedding，encoder中直接使用嵌入的向量，没有嵌入步骤
             enc = x
             enc *= self.hp.d_model ** 0.5  # scale
-            feat_ob1 = enc
             enc += positional_encoding(enc, self.hp)
-            feat_ob2 = enc
             enc = tf.layers.dropout(enc, self.hp.dropout_rate, training=training)
-            feat_ob3 = enc
 
             # blocks
             for i in range(self.hp.num_blocks):
                 with tf.variable_scope("num_blocks_{}".format(i), reuse=tf.AUTO_REUSE):
                     # self-attention
-                    enc = multihead_attention(queries=enc,
+                    enc, feat_obs = multihead_attention(queries=enc,
                                               keys=enc,
                                               values=enc,
                                               key_masks=src_masks,
@@ -241,8 +239,7 @@ class Self_attention:
                     enc = ff(enc, num_units=[self.hp.d_ff, self.hp.d_model])
 
         memory = enc
-        feat_ob4 = enc
-        return memory, [feat_ob1, feat_ob2, feat_ob3, feat_ob4]
+        return memory, feat_obs
 
     def mlp(self,memory, scope="final_mlp"):
         # input: memroy(?,seq_len,d_model)

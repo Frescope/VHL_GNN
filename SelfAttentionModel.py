@@ -258,7 +258,7 @@ class Self_attention:
         # memory = tf.reshape(memory, [tf.shape(memory)[0], tf.shape(memory)[1], 512])
         logits = self.mlp(memory)
         _,y = ys
-        logits = tf.clip_by_value(tf.reshape(tf.sigmoid(logits),[-1,1]),1e-8,0.99999999)
+        logits = tf.clip_by_value(tf.reshape(tf.sigmoid(logits),[-1,1]),5e-8,0.99999995)
         y = tf.reshape(y, [-1,1])
         # ce = tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits,labels=y)
         ce = -y * (tf.log(logits)) - (1-y)*tf.log(1-logits)

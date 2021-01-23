@@ -72,12 +72,14 @@ def scaled_dot_product_attention(Q, K, V, key_masks,
 
         # dot product
         outputs = tf.matmul(Q, tf.transpose(K, [0, 2, 1]))  # (N, T_q, T_k)
+        feat_ob0 = outputs
 
         # scale
         outputs /= d_k ** 0.5
 
         # key masking
         outputs = mask(outputs, key_masks=key_masks, type="key")
+        feat_ob1 = outputs
 
         # causality or future blinding masking
         if causality:
@@ -85,7 +87,9 @@ def scaled_dot_product_attention(Q, K, V, key_masks,
 
         # softmax
         outputs = tf.nn.softmax(outputs)
+        feat_ob2 = outputs
         attention = tf.transpose(outputs, [0, 2, 1])
+        feat_ob3 = attention
         tf.summary.image("attention", tf.expand_dims(attention[:1], -1))
 
         # # query masking
@@ -93,11 +97,13 @@ def scaled_dot_product_attention(Q, K, V, key_masks,
 
         # dropout
         outputs = tf.layers.dropout(outputs, rate=dropout_rate, training=training)
+        feat_ob4 = outputs
 
         # weighted sum (context vectors)
         outputs = tf.matmul(outputs, V)  # (N, T_q, d_v)
+        feat_ob5 = outputs
 
-    return outputs
+    return outputs, [feat_ob0, feat_ob1, feat_ob2, feat_ob3, feat_ob4, feat_ob5]
 
 def mask(inputs, key_masks=None, type=None):
     """Masks paddings on keys or queries to inputs
@@ -156,11 +162,11 @@ def multihead_attention(queries, keys, values, key_masks,
         V_ = tf.concat(tf.split(V, num_heads, axis=2), axis=0)  # (h*N, T_k, d_model/h)
 
         # Attention
-        outputs = scaled_dot_product_attention(Q_, K_, V_, key_masks, causality, dropout_rate, training)
-        feat_ob0 = outputs
+        outputs, feat_obs = scaled_dot_product_attention(Q_, K_, V_, key_masks, causality, dropout_rate, training)
 
         # Restore shape
         outputs = tf.concat(tf.split(outputs, num_heads, axis=0), axis=2)  # (N, T_q, d_model)
+        feat_obs.append(outputs)
 
         # Residual connection
         outputs += queries
@@ -168,7 +174,7 @@ def multihead_attention(queries, keys, values, key_masks,
         # Normalize
         # outputs = ln(outputs)
 
-    return outputs, [Q,K,V,Q_,K_,V_,feat_ob0]
+    return outputs, feat_obs
 
 def ff(inputs, num_units, scope="positionwise_feedforward"):
     '''position-wise feed forward net. See 3.3

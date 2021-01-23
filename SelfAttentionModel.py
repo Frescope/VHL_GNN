@@ -243,6 +243,7 @@ class Self_attention:
                                               causality=False)
                     # feed forward
                     enc = ff(enc, num_units=[self.hp.d_ff, self.hp.d_model])
+                    feat_obs.append(enc)
 
         memory = enc
         return memory, feat_obs

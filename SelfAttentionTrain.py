@@ -293,30 +293,30 @@ with tf.Session(config=config) as sess:
         epoch = math.ceil(_gs / num_train_batches)
 
         # gradient check
-        logging.info("\nStep: {} Loss: {}".format(_gs, batch_loss))
-        for j in range(len(encoder_feat_observe)):
+        # logging.info("\nStep: {} Loss: {}".format(_gs, batch_loss))
+        # for j in range(len(encoder_feat_observe)):
             # ftmp = encoder_feat_observe[j].reshape((10,512)).mean(axis=1)
             # logging.info(str(j)+"\t"+str(ftmp.reshape((-1))))
-            logging.info(str(encoder_feat_observe[j].shape))
-        for j in range(len(mlp_feat_observe)):
+            # logging.info(str(encoder_feat_observe[j].shape))
+        # for j in range(len(mlp_feat_observe)):
             # ftmp = mlp_feat_observe[j].mean(axis=-1)
             # logging.info(str(j)+"\t"+str(ftmp.reshape((-1))))
-            logging.info(str(mlp_feat_observe[j].shape))
+            # logging.info(str(mlp_feat_observe[j].shape))
 
         # logging.info("{} Mean, Min, Max: {:.6f} {:.6f} {:.6f}".format(
         #     str(batch_logits.shape), np.mean(batch_logits), np.min(batch_logits), np.max(batch_logits)))
         # logging.info(str(batch_logits.reshape((-1))))
-        for j in range(len(grads_observe)):
-            grad, v_ = grads_observe[j]
-            var = vars_observe[j]
+        # for j in range(len(grads_observe)):
+        #     grad, v_ = grads_observe[j]
+        #     var = vars_observe[j]
             # logging.info("{} (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
             #     v_names[j],np.mean(var),np.min(var),np.max(var)))
             # logging.info("Gradient (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
             #     np.mean(grad),np.min(grad),np.max(grad)))
-            logging.info(v_names[j]+"\t"+str(v_.shape)+"\t"+str(grad.shape))
+            # logging.info(v_names[j]+"\t"+str(v_.shape)+"\t"+str(grad.shape))
         # if _gs >= 10:
         #     os._exit(0)
-        os._exit(0)
+        # os._exit(0)
 
         if _gs and _gs % num_train_batches == 0:
             # evaluation
@@ -346,7 +346,7 @@ with tf.Session(config=config) as sess:
 
             logging.info("# fall back to train mode")
             sess.run(train_init_op)
-            os._exit(0)
+            # os._exit(0)
 
 logging.info("Done")
 

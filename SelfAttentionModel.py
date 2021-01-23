@@ -165,7 +165,7 @@ def multihead_attention(queries, keys, values, key_masks,
         outputs += queries
 
         # Normalize
-        outputs = ln(outputs)
+        # outputs = ln(outputs)
 
     return outputs
 
@@ -188,7 +188,7 @@ def ff(inputs, num_units, scope="positionwise_feedforward"):
         outputs += inputs
 
         # Normalize
-        outputs = ln(outputs)
+        # outputs = ln(outputs)
 
     return outputs
 
@@ -274,7 +274,7 @@ class Self_attention:
 
         global_step = tf.train.get_or_create_global_step()
         lr = noam_scheme(self.hp.lr, global_step, self.hp.warmup_steps)
-        optimizer = tf.train.AdamOptimizer(lr)
+        optimizer = tf.train.AdamOptimizer(self.hp.lr)
         
         # train_op = optimizer.minimize(loss, global_step=global_step)
         

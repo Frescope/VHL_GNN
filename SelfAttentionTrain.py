@@ -286,13 +286,14 @@ with tf.Session(config=config) as sess:
 
     epoch_loss = []
     for i in tqdm(range(_gs, total_steps+1)):
-        vars_observe, grads_observe, batch_logits, batch_loss, _, _gs = sess.run([train_vars, train_grads, train_logits, loss, train_op, global_step])
+        input_observe, vars_observe, grads_observe, batch_logits, batch_loss, _, _gs = sess.run([xs, train_vars, train_grads, train_logits, loss, train_op, global_step])
         epoch_loss.append(batch_loss)
 
         epoch = math.ceil(_gs / num_train_batches)
 
         # gradient check
         logging.info("\nStep: {} Loss: {}".format(_gs, batch_loss))
+        logging.info(str(input_observe.shape))
         logging.info("{} Mean, Min, Max: {:.6f} {:.6f} {:.6f}".format(
             str(batch_logits.shape), np.mean(batch_logits), np.min(batch_logits), np.max(batch_logits)))
         logging.info(str(batch_logits.reshape((-1))))

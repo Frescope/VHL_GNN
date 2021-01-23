@@ -249,19 +249,22 @@ class Self_attention:
         # output: logits(?,seq_len)
         with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
             logits = tf.layers.dense(memory, self.hp.d_ff, activation=tf.nn.relu, name='Inner_dense')
+            feat_ob1 = logits
             logits = tf.layers.dense(logits, self.hp.d_model, activation=tf.nn.relu, name='Hidden_dense')
+            feat_ob2 = logits
             logits = tf.layers.dense(logits, 1, name='Outer_dense')
+            feat_ob3 = logits
             logits = tf.squeeze(logits)
-        return logits
+        return logits, [feat_ob1, feat_ob2, feat_ob3]
 
     def train(self, xs, ys):
         # input: xs: x(bc,seq_len,d_model)
         #        ys: scores(bc,seq_len), labels(bc,seq_len)
 
-        memory, feat_obs = self.encode(xs)
+        memory, enc_feat_obs = self.encode(xs)
         # memory=  xs
         # memory = tf.reshape(memory, [tf.shape(memory)[0], tf.shape(memory)[1], 512])
-        logits = self.mlp(memory)
+        logits, mlp_feat_obs = self.mlp(memory)
         _,y = ys
         logits = tf.clip_by_value(tf.reshape(tf.sigmoid(logits),[-1,1]),5e-8,0.99999995)
         y = tf.reshape(y, [-1,1])
@@ -280,14 +283,14 @@ class Self_attention:
         # gradient_clip = [(tf.clip_by_value(grad, -5.0, 5.0), var) for grad, var in gradient]
         train_op = optimizer.apply_gradients(gradient, global_step=global_step)
         
-        return feat_obs, varlist, gradient, logits, loss, train_op, global_step
+        return enc_feat_obs, mlp_feat_obs, varlist, gradient, logits, loss, train_op, global_step
 
     def eval(self, xs, ys):
         # input: xs: x(bc,seq_len,d_model)
         #        ys: scores(bc,seq_len), labels(bc,seq_len)
-        memory, feat_obs = self.encode(xs,False)
+        memory, enc_feat_obs = self.encode(xs)
         # memory=  xs
         # memory = tf.reshape(memory, [tf.shape(memory)[0], tf.shape(memory)[1], 512])
-        logits = self.mlp(memory)
+        logits, mlp_feat_obs = self.mlp(memory)
         logits = tf.clip_by_value(tf.reshape(tf.sigmoid(logits),[-1,1]),1e-8,0.99999999)
         return logits

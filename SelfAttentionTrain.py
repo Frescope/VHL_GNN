@@ -316,7 +316,7 @@ with tf.Session(config=config) as sess:
             logging.info(v_names[j]+"\t"+str(v_.shape)+"\t"+str(var.shape))
         # if _gs >= 10:
         #     os._exit(0)
-        os._exit(0)
+        os._exit(0) 
 
         if _gs and _gs % num_train_batches == 0:
             # evaluation

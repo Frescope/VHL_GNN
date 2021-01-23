@@ -298,7 +298,7 @@ with tf.Session(config=config) as sess:
             ftmp = encoder_feat_observe[j].reshape((10,512)).mean(axis=1)
             logging.info(str(j)+"\t"+str(ftmp.reshape((-1))))
         for j in range(len(mlp_feat_observe)):
-            ftmp = mlp_feat_observe[j].reshape((10,512)).mean(axis=1)
+            ftmp = mlp_feat_observe[j].mean(axis=-1)
             logging.info(str(j)+"\t"+str(ftmp.reshape((-1))))
 
         logging.info("{} Mean, Min, Max: {:.6f} {:.6f} {:.6f}".format(

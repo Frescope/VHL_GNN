@@ -299,9 +299,7 @@ with tf.Session(config=config) as sess:
             var = vars_observe[i]
             logging.info("{} (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
                 v_names[i],np.mean(var),np.min(var),np.max(var)))
-            logging.info("{} (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
-                v_names[i],np.mean(v_),np.min(v_),np.max(v_)))
-            logging.info("Gradient (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}\n".format(
+            logging.info("Gradient (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
                 np.mean(grad),np.min(grad),np.max(grad)))
 
         if _gs and _gs % num_train_batches == 0:

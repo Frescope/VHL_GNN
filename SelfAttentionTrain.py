@@ -293,7 +293,8 @@ with tf.Session(config=config) as sess:
 
         # gradient check
         logging.info("\nStep: {} Loss: {}".format(_gs, batch_loss))
-        logging.info(str(input_observe.shape))
+        input_observe = input_observe.reshape((10,512)).mean(axis=1)
+        logging.info(str(input_observe.reshape((-1))))
         logging.info("{} Mean, Min, Max: {:.6f} {:.6f} {:.6f}".format(
             str(batch_logits.shape), np.mean(batch_logits), np.min(batch_logits), np.max(batch_logits)))
         logging.info(str(batch_logits.reshape((-1))))

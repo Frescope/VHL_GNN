@@ -249,7 +249,7 @@ eval_init_op = iter.make_initializer(eval_batches)
 # build the graph
 logging.info("# Load model")
 m = Self_attention(hp)
-feat_obs, train_vars, train_grads, train_logits, loss, train_op, global_step = m.train(xs,ys)
+enc_feat_obs, mlp_feat_obs, train_vars, train_grads, train_logits, loss, train_op, global_step = m.train(xs,ys)
 eval_logits = m.eval(xs,ys)
 
 # config session
@@ -287,15 +287,18 @@ with tf.Session(config=config) as sess:
 
     epoch_loss = []
     for i in tqdm(range(_gs, total_steps+1)):
-        feat_observe, vars_observe, grads_observe, batch_logits, batch_loss, _, _gs = sess.run([feat_obs, train_vars, train_grads, train_logits, loss, train_op, global_step])
+        encoder_feat_observe, mlp_feat_observe, vars_observe, grads_observe, batch_logits, batch_loss, _, _gs = sess.run([enc_feat_obs, mlp_feat_obs, train_vars, train_grads, train_logits, loss, train_op, global_step])
         epoch_loss.append(batch_loss)
 
         epoch = math.ceil(_gs / num_train_batches)
 
         # gradient check
         logging.info("\nStep: {} Loss: {}".format(_gs, batch_loss))
-        for j in range(len(feat_observe)):
-            ftmp = feat_observe[j].reshape((10,512)).mean(axis=1)
+        for j in range(len(encoder_feat_observe)):
+            ftmp = encoder_feat_observe[j].reshape((10,512)).mean(axis=1)
+            logging.info(str(j)+"\t"+str(ftmp.reshape((-1))))
+        for j in range(len(mlp_feat_observe)):
+            ftmp = mlp_feat_observe[j].reshape((10,512)).mean(axis=1)
             logging.info(str(j)+"\t"+str(ftmp.reshape((-1))))
 
         logging.info("{} Mean, Min, Max: {:.6f} {:.6f} {:.6f}".format(

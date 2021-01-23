@@ -265,9 +265,10 @@ class Self_attention:
         # input: xs: x(bc,seq_len,d_model)
         #        ys: scores(bc,seq_len), labels(bc,seq_len)
 
-        memory, enc_feat_obs = self.encode(xs)
-        # memory=  xs
-        # memory = tf.reshape(memory, [tf.shape(memory)[0], tf.shape(memory)[1], 512])
+        # memory, enc_feat_obs = self.encode(xs)
+        enc_feat_obs = []
+        memory=  xs
+        memory = tf.reshape(memory, [tf.shape(memory)[0], tf.shape(memory)[1], 512])
         logits, mlp_feat_obs = self.mlp(memory)
         _,y = ys
         logits = tf.clip_by_value(tf.reshape(tf.sigmoid(logits),[-1,1]),5e-8,0.99999995)
@@ -293,9 +294,9 @@ class Self_attention:
     def eval(self, xs, ys):
         # input: xs: x(bc,seq_len,d_model)
         #        ys: scores(bc,seq_len), labels(bc,seq_len)
-        memory, enc_feat_obs = self.encode(xs)
-        # memory=  xs
-        # memory = tf.reshape(memory, [tf.shape(memory)[0], tf.shape(memory)[1], 512])
+        # memory, enc_feat_obs = self.encode(xs)
+        memory=  xs
+        memory = tf.reshape(memory, [tf.shape(memory)[0], tf.shape(memory)[1], 512])
         logits, mlp_feat_obs = self.mlp(memory)
         logits = tf.clip_by_value(tf.reshape(tf.sigmoid(logits),[-1,1]),1e-8,0.99999999)
         return logits

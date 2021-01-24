@@ -45,13 +45,13 @@ class Hparams_selfattn:
 
     # training
     parser.add_argument('--batch_size', default=5, type=int)
-    parser.add_argument('--lr', default=0.001, type=float, help="learning rate")
+    parser.add_argument('--lr', default=0.0001, type=float, help="learning rate")
     parser.add_argument('--warmup_steps', default=1000, type=int)
-    parser.add_argument('--num_epochs', default=300, type=int)
+    parser.add_argument('--num_epochs', default=1200, type=int)
     parser.add_argument('--load_ckpt', default=False, type=bool)
 
     # checkpoint
-    parser.add_argument('--ckpt_epoch', default=50000, type=int,
+    parser.add_argument('--ckpt_epoch', default=900, type=int,
                         help="Start to save ckpt")
     parser.add_argument('--ckpt_num', default=20, type=int,
                         help="number of ckpt to keep")

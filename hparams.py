@@ -65,7 +65,7 @@ class Hparams_selfattn:
                         help="number of encoder/decoder blocks")
     parser.add_argument('--num_heads', default=8, type=int,
                         help="number of attention heads")
-    parser.add_argument('--seq_len', default=30, type=int,
+    parser.add_argument('--seq_len', default=15, type=int,
                         help="length of clip sequence")
     parser.add_argument('--seq_step', default=1, type=int,
                         help='step between ')

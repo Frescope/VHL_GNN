@@ -72,12 +72,14 @@ def scaled_dot_product_attention(Q, K, V, key_masks,
 
         # dot product
         outputs = tf.matmul(Q, tf.transpose(K, [0, 2, 1]))  # (N, T_q, T_k)
+        feat_ob0 = outputs
 
         # scale
         outputs /= d_k ** 0.5
 
         # key masking
         outputs = mask(outputs, key_masks=key_masks, type="key")
+        feat_ob1 = outputs
 
         # causality or future blinding masking
         if causality:
@@ -85,7 +87,9 @@ def scaled_dot_product_attention(Q, K, V, key_masks,
 
         # softmax
         outputs = tf.nn.softmax(outputs)
+        feat_ob2 = outputs
         attention = tf.transpose(outputs, [0, 2, 1])
+        feat_ob3 = attention
         tf.summary.image("attention", tf.expand_dims(attention[:1], -1))
 
         # # query masking
@@ -93,11 +97,13 @@ def scaled_dot_product_attention(Q, K, V, key_masks,
 
         # dropout
         outputs = tf.layers.dropout(outputs, rate=dropout_rate, training=training)
+        feat_ob4 = outputs
 
         # weighted sum (context vectors)
         outputs = tf.matmul(outputs, V)  # (N, T_q, d_v)
+        feat_ob5 = outputs
 
-    return outputs
+    return outputs, [feat_ob0, feat_ob1, feat_ob2, feat_ob3, feat_ob4, feat_ob5]
 
 def mask(inputs, key_masks=None, type=None):
     """Masks paddings on keys or queries to inputs
@@ -146,9 +152,9 @@ def multihead_attention(queries, keys, values, key_masks,
     d_model = queries.get_shape().as_list()[-1]
     with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
         # Linear projections
-        Q = tf.layers.dense(queries, d_model, use_bias=True)  # (N, T_q, d_model)
-        K = tf.layers.dense(keys, d_model, use_bias=True)  # (N, T_k, d_model)
-        V = tf.layers.dense(values, d_model, use_bias=True)  # (N, T_k, d_model)
+        Q = tf.layers.dense(queries, d_model, use_bias=True, name='Q_dense')  # (N, T_q, d_model)
+        K = tf.layers.dense(keys, d_model, use_bias=True, name='K_dense')  # (N, T_k, d_model)
+        V = tf.layers.dense(values, d_model, use_bias=True, name='V_dense')  # (N, T_k, d_model)
 
         # Split and concat
         Q_ = tf.concat(tf.split(Q, num_heads, axis=2), axis=0)  # (h*N, T_q, d_model/h)
@@ -156,10 +162,11 @@ def multihead_attention(queries, keys, values, key_masks,
         V_ = tf.concat(tf.split(V, num_heads, axis=2), axis=0)  # (h*N, T_k, d_model/h)
 
         # Attention
-        outputs = scaled_dot_product_attention(Q_, K_, V_, key_masks, causality, dropout_rate, training)
+        outputs, feat_obs = scaled_dot_product_attention(Q_, K_, V_, key_masks, causality, dropout_rate, training)
 
         # Restore shape
         outputs = tf.concat(tf.split(outputs, num_heads, axis=0), axis=2)  # (N, T_q, d_model)
+        feat_obs.append(outputs)
 
         # Residual connection
         outputs += queries
@@ -167,7 +174,7 @@ def multihead_attention(queries, keys, values, key_masks,
         # Normalize
         outputs = ln(outputs)
 
-    return outputs
+    return outputs, feat_obs
 
 def ff(inputs, num_units, scope="positionwise_feedforward"):
     '''position-wise feed forward net. See 3.3
@@ -179,10 +186,10 @@ def ff(inputs, num_units, scope="positionwise_feedforward"):
     '''
     with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
         # Inner layer
-        outputs = tf.layers.dense(inputs, num_units[0], activation=tf.nn.relu)
+        outputs = tf.layers.dense(inputs, num_units[0], activation=tf.nn.relu, name='Inner_dense')
 
         # Outer layer
-        outputs = tf.layers.dense(outputs, num_units[1])
+        outputs = tf.layers.dense(outputs, num_units[1], name='Outer_dense')
 
         # Residual connection
         outputs += inputs
@@ -208,6 +215,7 @@ class Self_attention:
 
     def encode(self, xs, training=True):
         # return: memory(?,seq_len,d_model)
+
         with tf.variable_scope('encoder', reuse=tf.AUTO_REUSE):
             x = xs  # (bc,seq_len,d_model)
 
@@ -225,7 +233,7 @@ class Self_attention:
             for i in range(self.hp.num_blocks):
                 with tf.variable_scope("num_blocks_{}".format(i), reuse=tf.AUTO_REUSE):
                     # self-attention
-                    enc = multihead_attention(queries=enc,
+                    enc, feat_obs = multihead_attention(queries=enc,
                                               keys=enc,
                                               values=enc,
                                               key_masks=src_masks,
@@ -235,30 +243,35 @@ class Self_attention:
                                               causality=False)
                     # feed forward
                     enc = ff(enc, num_units=[self.hp.d_ff, self.hp.d_model])
+                    feat_obs.append(enc)
 
         memory = enc
-        return memory
+        return memory, feat_obs
 
     def mlp(self,memory, scope="final_mlp"):
         # input: memroy(?,seq_len,d_model)
         # output: logits(?,seq_len)
         with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
-            logits = tf.layers.dense(memory, self.hp.d_ff, activation=tf.nn.relu)
-            logits = tf.layers.dense(logits, self.hp.d_model, activation=tf.nn.relu)
-            logits = tf.layers.dense(logits, 1)
+            logits = tf.layers.dense(memory, self.hp.d_ff, activation=tf.nn.relu, name='Inner_dense')
+            feat_ob1 = logits
+            logits = tf.layers.dense(logits, self.hp.d_model, activation=tf.nn.relu, name='Hidden_dense')
+            feat_ob2 = logits
+            logits = tf.layers.dense(logits, 1, name='Outer_dense')
+            feat_ob3 = logits
             logits = tf.squeeze(logits)
-        return logits
+        return logits, [feat_ob1, feat_ob2, feat_ob3]
 
     def train(self, xs, ys):
         # input: xs: x(bc,seq_len,d_model)
         #        ys: scores(bc,seq_len), labels(bc,seq_len)
 
-        # memory = self.encode(xs)
+        # memory, enc_feat_obs = self.encode(xs)
+        enc_feat_obs = []
         memory=  xs
         memory = tf.reshape(memory, [tf.shape(memory)[0], tf.shape(memory)[1], 512])
-        logits = self.mlp(memory)
+        logits, mlp_feat_obs = self.mlp(memory)
         _,y = ys
-        logits = tf.clip_by_value(tf.reshape(tf.sigmoid(logits),[-1,1]),1e-8,0.99999999)
+        logits = tf.clip_by_value(tf.reshape(tf.sigmoid(logits),[-1,1]),5e-8,0.99999995)
         y = tf.reshape(y, [-1,1])
         # ce = tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits,labels=y)
         ce = -y * (tf.log(logits)) - (1-y)*tf.log(1-logits)
@@ -272,17 +285,18 @@ class Self_attention:
         
         varlist = tf.trainable_variables()
         gradient = optimizer.compute_gradients(loss, varlist)
-        gradient_clip = [(tf.clip_by_value(grad, -5.0, 5.0), var) for grad, var in gradient]
-        train_op = optimizer.apply_gradients(gradient_clip, global_step=global_step)
+        # gradient_clip = [(tf.clip_by_value(grad, -5.0, 5.0), var) for grad, var in gradient]
+        # train_op = optimizer.apply_gradients(gradient, global_step=global_step)
+        train_op = optimizer.minimize(loss,global_step=global_step)
         
-        return logits, loss, train_op, global_step
+        return enc_feat_obs, mlp_feat_obs, varlist, gradient, logits, loss, train_op, global_step
 
     def eval(self, xs, ys):
         # input: xs: x(bc,seq_len,d_model)
         #        ys: scores(bc,seq_len), labels(bc,seq_len)
-        # memory = self.encode(xs,False)
+        # memory, enc_feat_obs = self.encode(xs)
         memory=  xs
         memory = tf.reshape(memory, [tf.shape(memory)[0], tf.shape(memory)[1], 512])
-        logits = self.mlp(memory)
+        logits, mlp_feat_obs = self.mlp(memory)
         logits = tf.clip_by_value(tf.reshape(tf.sigmoid(logits),[-1,1]),1e-8,0.99999999)
         return logits

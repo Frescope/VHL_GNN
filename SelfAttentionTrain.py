@@ -3,6 +3,7 @@
 import os
 import time
 import numpy as np
+from numpy.core import shape_base
 import tensorflow as tf
 import math
 import json
@@ -230,7 +231,6 @@ logging.info("# Prepare training batches")
 label_record = load_label()
 data_train, data_valid, data_test = load_data(label_record)
 data_eval = data_test
-data_train = data_test
 train_batches, num_train_batches, num_train_samples = get_batch_train(data_train)
 eval_batches, num_eval_batches, num_eval_samples, eval_ids = get_batch_eval(data_eval)
 
@@ -249,7 +249,7 @@ eval_init_op = iter.make_initializer(eval_batches)
 # build the graph
 logging.info("# Load model")
 m = Self_attention(hp)
-train_logits, loss, train_op, global_step = m.train(xs,ys)
+enc_feat_obs, mlp_feat_obs, train_vars, train_grads, train_logits, loss, train_op, global_step = m.train(xs,ys)
 eval_logits = m.eval(xs,ys)
 
 # config session
@@ -259,8 +259,8 @@ config.gpu_options.allow_growth = True
 saver = tf.train.Saver(max_to_keep=hp.ckpt_num)
 with tf.Session(config=config) as sess:
     # load checkpoint:
-    # ckpt = tf.train.latest_checkpoint(hp.model_save_dir)
-    ckpt = os.path.join(hp.model_save_dir, "E1033L0.057F10.238-136356")
+    ckpt = tf.train.latest_checkpoint(hp.model_save_dir)
+    # ckpt = os.path.join(hp.model_save_dir, "E1033L0.057F10.238-136356")
     if ckpt is None or hp.load_ckpt == False:
         logging.info("Initializing from scratch")
         sess.run(tf.global_variables_initializer())
@@ -274,32 +274,49 @@ with tf.Session(config=config) as sess:
     _gs = sess.run(global_step)
 
     # var & gradient check
-    graph = tf.get_default_graph()
-    var_observe = []
-    mlp_0_weight = graph.get_tensor_by_name('final_mlp/dense/kernel:0')
-    var_observe.append(mlp_0_weight)
-    mlp_1_weight = graph.get_tensor_by_name('final_mlp/dense_1/kernel:0')
-    var_observe.append(mlp_1_weight)
-    mlp_2_weight = graph.get_tensor_by_name('final_mlp/dense_2/kernel:0')
-    var_observe.append(mlp_2_weight)
-    # encoder_ff_0 = graph.get_tensor_by_name('encoder/num_blocks_0/positionwise_feedforward/dense/kernel:0')
-    # var_observe.append(encoder_ff_0)
-    # encoder_ff_1 = graph.get_tensor_by_name('encoder/num_blocks_0/positionwise_feedforward/dense_1/kernel:0')
-    # var_observe.append(encoder_ff_1)
-    # encoder_attention_0 = graph.get_tensor_by_name('encoder/num_blocks_0/multihead_attention/dense/kernel:0')
-    # var_observe.append(encoder_attention_0)
-    # encoder_attention_1 = graph.get_tensor_by_name('encoder/num_blocks_0/multihead_attention/dense_1/kernel:0')
-    # var_observe.append(encoder_attention_1)
-    # encoder_attention_2 = graph.get_tensor_by_name('encoder/num_blocks_0/multihead_attention/dense_2/kernel:0')
-    # var_observe.append(encoder_attention_2)
-    grad1 = tf.gradients(loss, mlp_2_weight)
+    # variable_names = [v.name for v in tf.trainable_variables()]
+    # graph = tf.get_default_graph()
+    v_names = ['Q_w', 'Q_b', 'K_w', 'K_b', 'V_w', 'V_b', 'ln_beta', 'ln_gamma', 
+            'ff_0_w', 'ff_0_b','ff_1_w','ff_1_b','ff_ln_beta','ff_ln_gamma',
+            'mlp_0_w', 'mlp_0_b', 'mlp_1_w', 'mlp_1_b', 'mlp_2_w', 'mlp_2_b']
+    # grads = []
+    # for i in range(len(variable_names)):
+    #     var = graph.get_tensor_by_name(variable_names[i])
+    #     grad = tf.gradients(loss,var)
+    #     grads.append(grad) 
 
     epoch_loss = []
     for i in tqdm(range(_gs, total_steps+1)):
-        batch_loss, _, _gs = sess.run([loss, train_op, global_step])
+        encoder_feat_observe, mlp_feat_observe, vars_observe, grads_observe, batch_logits, batch_loss, _, _gs = sess.run([enc_feat_obs, mlp_feat_obs, train_vars, train_grads, train_logits, loss, train_op, global_step])
         epoch_loss.append(batch_loss)
 
         epoch = math.ceil(_gs / num_train_batches)
+
+        # gradient check
+        # logging.info("\nStep: {} Loss: {}".format(_gs, batch_loss))
+        # for j in range(len(encoder_feat_observe)):
+            # ftmp = encoder_feat_observe[j].reshape((10,512)).mean(axis=1)
+            # logging.info(str(j)+"\t"+str(ftmp.reshape((-1))))
+            # logging.info(str(encoder_feat_observe[j].shape))
+        # for j in range(len(mlp_feat_observe)):
+            # ftmp = mlp_feat_observe[j].mean(axis=-1)
+            # logging.info(str(j)+"\t"+str(ftmp.reshape((-1))))
+            # logging.info(str(mlp_feat_observe[j].shape))
+
+        # logging.info("{} Mean, Min, Max: {:.6f} {:.6f} {:.6f}".format(
+        #     str(batch_logits.shape), np.mean(batch_logits), np.min(batch_logits), np.max(batch_logits)))
+        # logging.info(str(batch_logits.reshape((-1))))
+        # for j in range(len(grads_observe)):
+        #     grad, v_ = grads_observe[j]
+        #     var = vars_observe[j]
+            # logging.info("{} (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
+            #     v_names[j],np.mean(var),np.min(var),np.max(var)))
+            # logging.info("Gradient (Mean, Min, Max):\t{:.6f}\t{:.6f}\t{:.6f}".format(
+            #     np.mean(grad),np.min(grad),np.max(grad)))
+            # logging.info(v_names[j]+"\t"+str(v_.shape)+"\t"+str(grad.shape))
+        # if _gs >= 10:
+        #     os._exit(0)
+        # os._exit(0)
 
         if _gs and _gs % num_train_batches == 0:
             # evaluation
@@ -329,6 +346,7 @@ with tf.Session(config=config) as sess:
 
             logging.info("# fall back to train mode")
             sess.run(train_init_op)
+            # os._exit(0)
 
 logging.info("Done")
 

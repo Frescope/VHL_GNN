@@ -61,7 +61,7 @@ class Hparams_selfattn:
                         help="hidden dimension of encoder/decoder")
     parser.add_argument('--d_ff', default=2048, type=int,
                         help="hidden dimension of feedforward layer")
-    parser.add_argument('--num_blocks', default=1, type=int,
+    parser.add_argument('--num_blocks', default=2, type=int,
                         help="number of encoder/decoder blocks")
     parser.add_argument('--num_heads', default=8, type=int,
                         help="number of attention heads")

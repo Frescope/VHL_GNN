@@ -51,7 +51,7 @@ class Hparams_selfattn:
     parser.add_argument('--load_ckpt', default=False, type=bool)
 
     # checkpoint
-    parser.add_argument('--ckpt_epoch', default=900, type=int,
+    parser.add_argument('--ckpt_epoch', default=400, type=int,
                         help="Start to save ckpt")
     parser.add_argument('--ckpt_num', default=20, type=int,
                         help="number of ckpt to keep")
@@ -61,11 +61,11 @@ class Hparams_selfattn:
                         help="hidden dimension of encoder/decoder")
     parser.add_argument('--d_ff', default=2048, type=int,
                         help="hidden dimension of feedforward layer")
-    parser.add_argument('--num_blocks', default=5, type=int,
+    parser.add_argument('--num_blocks', default=2, type=int,
                         help="number of encoder/decoder blocks")
     parser.add_argument('--num_heads', default=8, type=int,
                         help="number of attention heads")
-    parser.add_argument('--seq_len', default=20, type=int,
+    parser.add_argument('--seq_len', default=30, type=int,
                         help="length of clip sequence")
     parser.add_argument('--seq_step', default=1, type=int,
                         help='step between ')

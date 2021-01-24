@@ -44,16 +44,16 @@ class Hparams_selfattn:
     parser = argparse.ArgumentParser()
 
     # training
-    parser.add_argument('--batch_size', default=10, type=int)
+    parser.add_argument('--batch_size', default=5, type=int)
     parser.add_argument('--lr', default=0.001, type=float, help="learning rate")
     parser.add_argument('--warmup_steps', default=1000, type=int)
-    parser.add_argument('--num_epochs', default=1000, type=int)
+    parser.add_argument('--num_epochs', default=300, type=int)
     parser.add_argument('--load_ckpt', default=False, type=bool)
 
     # checkpoint
-    parser.add_argument('--ckpt_epoch', default=500, type=int,
+    parser.add_argument('--ckpt_epoch', default=50000, type=int,
                         help="Start to save ckpt")
-    parser.add_argument('--ckpt_num', default=30, type=int,
+    parser.add_argument('--ckpt_num', default=20, type=int,
                         help="number of ckpt to keep")
 
     # model
@@ -61,15 +61,15 @@ class Hparams_selfattn:
                         help="hidden dimension of encoder/decoder")
     parser.add_argument('--d_ff', default=2048, type=int,
                         help="hidden dimension of feedforward layer")
-    parser.add_argument('--num_blocks', default=2, type=int,
+    parser.add_argument('--num_blocks', default=1, type=int,
                         help="number of encoder/decoder blocks")
     parser.add_argument('--num_heads', default=8, type=int,
                         help="number of attention heads")
-    parser.add_argument('--seq_len', default=10, type=int,
+    parser.add_argument('--seq_len', default=20, type=int,
                         help="length of clip sequence")
     parser.add_argument('--seq_step', default=1, type=int,
                         help='step between ')
-    parser.add_argument('--dropout_rate', default=0.9, type=float)
+    parser.add_argument('--dropout_rate', default=0.1, type=float)
     parser.add_argument('--gpu_num', default=2, type=int,
                         help='number of gpus')
 

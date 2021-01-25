@@ -57,6 +57,8 @@ class Hparams_selfattn:
                         help="number of ckpt to keep")
     parser.add_argument('--f1_thresh', default=0.26, type=float,
                         help="save models performing better than threshold")
+    parser.add_argument('--ckpt_name',default=None, type=str,
+                        help="ckpt to restore")
 
     # model
     parser.add_argument('--d_model', default=512, type=int,

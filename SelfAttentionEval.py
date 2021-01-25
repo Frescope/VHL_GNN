@@ -227,7 +227,7 @@ logging.info("# Prepare training batches")
 # load data
 label_record = load_label()
 data_train, data_valid, data_test = load_data(label_record)
-data_eval = data_train
+data_eval = data_test
 train_batches, num_train_batches, num_train_samples = get_batch_train(data_train)
 eval_batches, num_eval_batches, num_eval_samples, eval_ids = get_batch_eval(data_eval)
 
@@ -257,7 +257,9 @@ saver = tf.train.Saver(max_to_keep=hp.ckpt_num)
 with tf.Session(config=config) as sess:
     # load checkpoint:
     ckpt = tf.train.latest_checkpoint(hp.model_save_dir)
-    # ckpt = os.path.join(hp.model_save_dir, "E1033L0.057F10.238-136356")
+    # ckpt = os.path.join(hp.model_save_dir, "E0336L0.014F10.333-80640")
+    if not hp.ckpt_name == None:
+        ckpt =  os.path.join(hp.model_save_dir, hp.ckpt_name)
     if ckpt is None or hp.load_ckpt == False:
         logging.info("Initializing from scratch")
         sess.run(tf.global_variables_initializer())

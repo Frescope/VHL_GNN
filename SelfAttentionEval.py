@@ -246,7 +246,7 @@ eval_init_op = iter.make_initializer(eval_batches)
 # build the graph
 # logging.info("# Load model")
 m = Self_attention(hp)
-train_logits, loss, train_op, global_step = m.train(xs,ys)
+enc_feat_obs, mlp_feat_obs, train_vars, train_grads, train_logits, loss, train_op, global_step = m.train(xs,ys)
 eval_logits = m.eval(xs,ys)
 
 # config session

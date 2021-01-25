@@ -287,11 +287,11 @@ with tf.Session(config=config) as sess:
     #     grad = tf.gradients(loss,var)
     #     grads.append(grad) 
 
-    epoch_loss = []
+    batch_loss_list = []
     max_f1 = hp.f1_thresh
     for i in tqdm(range(_gs, total_steps+1)):
         encoder_feat_observe, mlp_feat_observe, vars_observe, grads_observe, batch_logits, batch_loss, _, _gs = sess.run([enc_feat_obs, mlp_feat_obs, train_vars, train_grads, train_logits, loss, train_op, global_step])
-        epoch_loss.append(batch_loss)
+        batch_loss_list.append(batch_loss)
 
         epoch = math.ceil(_gs / num_train_batches)
 
@@ -336,14 +336,14 @@ with tf.Session(config=config) as sess:
             logging.info("\nEpoch: %d, APRF: %.3f  %.3f  %.3f  %.3f"%(epoch,a,p,r,f))
 
             logging.info('Last Batch Loss: %.3f' % batch_loss)
-            logging.info('Epoch Loss: %.3f' % np.mean(np.array(epoch_loss)))
-
-            model_output = "E%04dL%.3fF1%.3f" % (epoch, np.mean(np.array(epoch_loss)), f)
-            epoch_loss.clear()
+            epoch_loss = np.mean(np.array(batch_loss_list))
+            batch_loss_list.clear()
+            logging.info('Epoch Loss: %.3f' % epoch_loss)
 
             # logging.info("# save models")
-            if epoch > hp.ckpt_epoch and f > max_f1 and np.mean(np.array(epoch_loss)) < 0.1:
-                max_f1 = f
+            if epoch > hp.ckpt_epoch and f > max_f1 and epoch_loss < 0.1:
+                max_f1 = f 
+                model_output = "E%04dL%.3fF1%.3f" % (epoch, epoch_loss, f)
                 ckpt_name = os.path.join(hp.model_save_dir, model_output)
                 saver.save(sess, ckpt_name, global_step=_gs)
                 logging.info("after training of {} epochs, {} has been saved.".format(epoch, ckpt_name))

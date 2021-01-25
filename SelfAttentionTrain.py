@@ -230,7 +230,7 @@ logging.info("# Prepare training batches")
 # load data
 label_record = load_label()
 data_train, data_valid, data_test = load_data(label_record)
-data_eval = data_test
+data_eval = data_valid
 train_batches, num_train_batches, num_train_samples = get_batch_train(data_train)
 eval_batches, num_eval_batches, num_eval_samples, eval_ids = get_batch_eval(data_eval)
 
@@ -256,7 +256,7 @@ eval_logits = m.eval(xs,ys)
 logging.info("# Session")
 config = tf.ConfigProto(allow_soft_placement=True)
 config.gpu_options.allow_growth = True
-saver = tf.train.Saver(max_to_keep=hp.ckpt_num)
+saver = tf.train.Saver(max_to_keep=None)
 with tf.Session(config=config) as sess:
     # load checkpoint:
     ckpt = tf.train.latest_checkpoint(hp.model_save_dir)
@@ -286,6 +286,7 @@ with tf.Session(config=config) as sess:
     #     grads.append(grad) 
 
     epoch_loss = []
+    max_f1 = hp.f1_thresh
     for i in tqdm(range(_gs, total_steps+1)):
         encoder_feat_observe, mlp_feat_observe, vars_observe, grads_observe, batch_logits, batch_loss, _, _gs = sess.run([enc_feat_obs, mlp_feat_obs, train_vars, train_grads, train_logits, loss, train_op, global_step])
         epoch_loss.append(batch_loss)
@@ -339,8 +340,9 @@ with tf.Session(config=config) as sess:
             epoch_loss.clear()
 
             # logging.info("# save models")
-            ckpt_name = os.path.join(hp.model_save_dir, model_output)
-            if epoch > hp.ckpt_epoch:
+            if epoch > hp.ckpt_epoch and f > max_f1:
+                max_f1 = f
+                ckpt_name = os.path.join(hp.model_save_dir, model_output)
                 saver.save(sess, ckpt_name, global_step=_gs)
                 logging.info("after training of {} epochs, {} has been saved.".format(epoch, ckpt_name))
 

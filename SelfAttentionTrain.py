@@ -259,7 +259,9 @@ config.gpu_options.allow_growth = True
 saver = tf.train.Saver(max_to_keep=None)
 with tf.Session(config=config) as sess:
     # load checkpoint:
-    ckpt = tf.train.latest_checkpoint(hp.model_save_dir)
+    ckpt = tf.train.latest_checkpoint(hp.model_save_dir)    
+    if not os.path.isdir(hp.model_save_dir):
+        os.makedirs(hp.model_save_dir)
     # ckpt = os.path.join(hp.model_save_dir, "E1033L0.057F10.238-136356")
     if ckpt is None or hp.load_ckpt == False:
         logging.info("Initializing from scratch")
@@ -331,7 +333,7 @@ with tf.Session(config=config) as sess:
             # logging.info('Preds(Mean, Min, Max): {:.10f} {:.10f} {:.10f}'.format(
             #     np.mean(temp),np.min(temp),np.max(temp)))
             a,p,r,f = evaluation(preds_list, data_eval, eval_ids)
-            logging.info("\nAPRF: %.3f  %.3f  %.3f  %.3f"%(a,p,r,f))
+            logging.info("\nEpoch: %d, APRF: %.3f  %.3f  %.3f  %.3f"%(epoch,a,p,r,f))
 
             logging.info('Last Batch Loss: %.3f' % batch_loss)
             logging.info('Epoch Loss: %.3f' % np.mean(np.array(epoch_loss)))
@@ -340,7 +342,7 @@ with tf.Session(config=config) as sess:
             epoch_loss.clear()
 
             # logging.info("# save models")
-            if epoch > hp.ckpt_epoch and f > max_f1:
+            if epoch > hp.ckpt_epoch and f > max_f1 and np.mean(np.array(epoch_loss)) < 0.1:
                 max_f1 = f
                 ckpt_name = os.path.join(hp.model_save_dir, model_output)
                 saver.save(sess, ckpt_name, global_step=_gs)

@@ -55,7 +55,7 @@ class Hparams_selfattn:
                         help="Start to save ckpt")
     parser.add_argument('--ckpt_num', default=20, type=int,
                         help="number of ckpt to keep")
-    parser.add_argument('--f1_thresh', default=0.33, type=float,
+    parser.add_argument('--f1_thresh', default=0.26, type=float,
                         help="save models performing better than threshold")
 
     # model
@@ -80,6 +80,6 @@ class Hparams_selfattn:
                         type=str, help='path of label file')
     parser.add_argument('--feature_path',default=r'/public/data0/users/hulinkang/bilibili/feature/',
                         type=str, help='directory of feature file')
-    parser.add_argument('--model_save_dir',default=r'/public/data0/users/hulinkang/VHL_GNN/models/',
+    parser.add_argument('--model_save_dir',default=r'/public/data0/users/hulinkang/VHL_GNN/models_2/',
                         type=str, help='directory of model saving')
     parser.add_argument('--log_dir', default=r'/public/data0/users/hulinkang/VHL_GNN/log/')

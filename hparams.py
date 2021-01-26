@@ -44,16 +44,16 @@ class Hparams_selfattn:
     parser = argparse.ArgumentParser()
 
     # training
-    parser.add_argument('--batch_size', default=5, type=int)
+    parser.add_argument('--batch_size', default=10, type=int)
     parser.add_argument('--lr', default=0.0001, type=float, help="learning rate")
-    parser.add_argument('--warmup_steps', default=6000, type=int)
+    parser.add_argument('--warmup_steps', default=10000, type=int)
     parser.add_argument('--num_epochs', default=400, type=int)
     parser.add_argument('--load_ckpt', default=False, type=bool)
 
     # checkpoint
     parser.add_argument('--ckpt_epoch', default=10, type=int,
                         help="Start to save ckpt")
-    parser.add_argument('--ckpt_num', default=20, type=int,
+    parser.add_argument('--ckpt_num', default=50, type=int,
                         help="number of ckpt to keep")
     parser.add_argument('--f1_thresh', default=0.25, type=float,
                         help="save models performing better than threshold")
@@ -82,6 +82,6 @@ class Hparams_selfattn:
                         type=str, help='path of label file')
     parser.add_argument('--feature_path',default=r'/public/data0/users/hulinkang/bilibili/feature/',
                         type=str, help='directory of feature file')
-    parser.add_argument('--model_save_dir',default=r'/public/data0/users/hulinkang/VHL_GNN/models_3/',
+    parser.add_argument('--model_save_dir',default=r'/public/data0/users/hulinkang/VHL_GNN/models/',
                         type=str, help='directory of model saving')
     parser.add_argument('--log_dir', default=r'/public/data0/users/hulinkang/VHL_GNN/log/')

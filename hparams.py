@@ -46,7 +46,7 @@ class Hparams_selfattn:
     # training
     parser.add_argument('--batch_size', default=10, type=int)
     parser.add_argument('--lr', default=0.0001, type=float, help="learning rate")
-    parser.add_argument('--warmup_steps', default=10000, type=int)
+    parser.add_argument('--warmup_steps', default=1000, type=int)
     parser.add_argument('--num_epochs', default=400, type=int)
     parser.add_argument('--load_ckpt', default=False, type=bool)
 
@@ -71,7 +71,7 @@ class Hparams_selfattn:
                         help="number of attention heads")
     parser.add_argument('--seq_len', default=25, type=int,
                         help="length of clip sequence")
-    parser.add_argument('--seq_step', default=1, type=int,
+    parser.add_argument('--seq_step', default=5, type=int,
                         help='step between sequences')
     parser.add_argument('--dropout_rate', default=0.1, type=float)
     parser.add_argument('--gpu_num', default=2, type=int,

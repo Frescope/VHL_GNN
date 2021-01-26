@@ -341,7 +341,7 @@ with tf.Session(config=config) as sess:
             logging.info('Epoch Loss: %.3f' % epoch_loss)
 
             # logging.info("# save models")
-            if epoch > hp.ckpt_epoch and f > (max_f1-0.025) and epoch_loss < 0.25:
+            if epoch > hp.ckpt_epoch and f > (max_f1-0.025) and epoch_loss < 0.35:
                 if f > max_f1:
                     max_f1 = f 
                 model_output = "E%04dL%.3fF1%.3f" % (epoch, epoch_loss, f)

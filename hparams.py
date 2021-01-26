@@ -82,6 +82,6 @@ class Hparams_selfattn:
                         type=str, help='path of label file')
     parser.add_argument('--feature_path',default=r'/public/data0/users/hulinkang/bilibili/feature/',
                         type=str, help='directory of feature file')
-    parser.add_argument('--model_save_dir',default=r'/public/data0/users/hulinkang/VHL_GNN/models_2/',
+    parser.add_argument('--model_save_dir',default=r'/public/data0/users/hulinkang/VHL_GNN/models_3/',
                         type=str, help='directory of model saving')
     parser.add_argument('--log_dir', default=r'/public/data0/users/hulinkang/VHL_GNN/log/')

@@ -3,7 +3,6 @@
 # 每个序列包含vid，序列起始，序列标签，getbatch时根据序列信息找到对应视频的对应片段
 # 沿着train_scheme的序列列表顺序训练，所有的序列全部训练过一次作为一个epoch
 
-
 import os
 import time
 import numpy as np
@@ -48,13 +47,13 @@ A_WIDTH = 8
 A_CHANN = 128
 
 # path & base
-LABEL_PATH = '//data//linkang//bilibili//label_record_zmn_24s.json'
-FEATURE_BASE = '//data//linkang//bilibili//feature//'
+LABEL_PATH = '//public//data0//users//hulinkang//bilibili//label_record_zmn_24s.json'
+FEATURE_BASE = '//public//data0//users//hulinkang//bilibili//feature//'
 
-model_save_dir = '//data//linkang//model_HL_v3//model_bilibili_SA_2//'
+model_save_dir = '//public//data0//users//hulinkang//model_HL//SelfAttention_0//'
 
-# ckpt_model_path = '../../model_HL_v3/model_bilibili_SA/STEP_2000'
-ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/MAXF1_0.272_0'
+# ckpt_model_path = '../model_HL/SelfAttention_0/STEP_2000'
+ckpt_model_path = '../model_HL/SelfAttention_0/MAXF1_0.272_0'
 
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):

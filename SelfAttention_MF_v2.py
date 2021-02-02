@@ -396,167 +396,167 @@ def run_training(data_train, data_test, test_mode):
     if not os.path.exists(model_save_dir):
         os.makedirs(model_save_dir)
     max_f1 = MAX_F1
+    print('Check')
+    # with tf.Graph().as_default():
+    #     global_step = tf.train.get_or_create_global_step()
+    #     # placeholders
+    #     visual_holder = tf.placeholder(tf.float32,shape=(BATCH_SIZE * GPU_NUM,
+    #                                                      SEQ_LEN,
+    #                                                      V_NUM,
+    #                                                      V_HEIGHT,
+    #                                                      V_WIDTH,
+    #                                                      V_CHANN))
+    #     audio_holder = tf.placeholder(tf.float32,shape=(BATCH_SIZE * GPU_NUM,
+    #                                                     SEQ_LEN,
+    #                                                     A_NUM,
+    #                                                     A_HEIGHT,
+    #                                                     A_WIDTH,
+    #                                                     A_CHANN))
+    #     scores_holder = tf.placeholder(tf.float32, shape=(BATCH_SIZE * GPU_NUM, SEQ_LEN))
+    #     labels_holder = tf.placeholder(tf.float32,shape=(BATCH_SIZE * GPU_NUM, SEQ_LEN))
+    #     dropout_holder = tf.placeholder(tf.float32,shape=())
+    #     training_holder = tf.placeholder(tf.bool,shape=())
 
-    with tf.Graph().as_default():
-        global_step = tf.train.get_or_create_global_step()
-        # placeholders
-        visual_holder = tf.placeholder(tf.float32,shape=(BATCH_SIZE * GPU_NUM,
-                                                         SEQ_LEN,
-                                                         V_NUM,
-                                                         V_HEIGHT,
-                                                         V_WIDTH,
-                                                         V_CHANN))
-        audio_holder = tf.placeholder(tf.float32,shape=(BATCH_SIZE * GPU_NUM,
-                                                        SEQ_LEN,
-                                                        A_NUM,
-                                                        A_HEIGHT,
-                                                        A_WIDTH,
-                                                        A_CHANN))
-        scores_holder = tf.placeholder(tf.float32, shape=(BATCH_SIZE * GPU_NUM, SEQ_LEN))
-        labels_holder = tf.placeholder(tf.float32,shape=(BATCH_SIZE * GPU_NUM, SEQ_LEN))
-        dropout_holder = tf.placeholder(tf.float32,shape=())
-        training_holder = tf.placeholder(tf.bool,shape=())
+    #     # parameters
+    #     with tf.variable_scope('var_name') as var_scope:
+    #         weights = {
+    #             'wc5b': _variable_with_weight_decay('wc5b', [3, 3, 3, 512, 512], 0.0005),
+    #         }
+    #         biases = {
+    #             'bc5b': _variable_with_weight_decay('bc5b', [512], 0.000),
+    #         }
+    #     with tf.variable_scope('var_name_audio') as var_scope_audio:
+    #         audio_weights = {
+    #             'wc5': _variable_with_weight_decay('au_wc5', [3, 3, 128, 256], L2_LAMBDA),
+    #         }
+    #         audio_biases = {
+    #             'bc5': _variable_with_weight_decay('au_bc5', [256], 0.0000),
+    #         }
 
-        # parameters
-        with tf.variable_scope('var_name') as var_scope:
-            weights = {
-                'wc5b': _variable_with_weight_decay('wc5b', [3, 3, 3, 512, 512], 0.0005),
-            }
-            biases = {
-                'bc5b': _variable_with_weight_decay('bc5b', [512], 0.000),
-            }
-        with tf.variable_scope('var_name_audio') as var_scope_audio:
-            audio_weights = {
-                'wc5': _variable_with_weight_decay('au_wc5', [3, 3, 128, 256], L2_LAMBDA),
-            }
-            audio_biases = {
-                'bc5': _variable_with_weight_decay('au_bc5', [256], 0.0000),
-            }
+    #     # training operations
+    #     lr = noam_scheme(LR_TRAIN,global_step,WARMUP_STEP)
+    #     opt_train = tf.train.AdamOptimizer(lr)
 
-        # training operations
-        lr = noam_scheme(LR_TRAIN,global_step,WARMUP_STEP)
-        opt_train = tf.train.AdamOptimizer(lr)
+    #     # graph building
+    #     tower_grads_train = []
+    #     logits_list = []
+    #     loss_list = []
+    #     for gpu_index in range(GPU_NUM):
+    #         with tf.device('/gpu:%d' % gpu_index):
+    #             visual = visual_holder[gpu_index * BATCH_SIZE:(gpu_index + 1) * BATCH_SIZE, :, :, :, :, :]
+    #             visual = tf.reshape(visual,shape=(BATCH_SIZE*SEQ_LEN,V_NUM,V_HEIGHT,V_WIDTH,V_CHANN))
+    #             audio = audio_holder[gpu_index * BATCH_SIZE:(gpu_index + 1) * BATCH_SIZE, :, :, :, :, :]
+    #             audio = tf.reshape(audio,shape=(BATCH_SIZE*SEQ_LEN,A_NUM,A_HEIGHT,A_WIDTH,A_CHANN))
+    #             labels = labels_holder[gpu_index * BATCH_SIZE:(gpu_index + 1) * BATCH_SIZE, :]
+    #             scores = scores_holder[gpu_index * BATCH_SIZE:(gpu_index + 1) * BATCH_SIZE, :]
 
-        # graph building
-        tower_grads_train = []
-        logits_list = []
-        loss_list = []
-        for gpu_index in range(GPU_NUM):
-            with tf.device('/gpu:%d' % gpu_index):
-                visual = visual_holder[gpu_index * BATCH_SIZE:(gpu_index + 1) * BATCH_SIZE, :, :, :, :, :]
-                visual = tf.reshape(visual,shape=(BATCH_SIZE*SEQ_LEN,V_NUM,V_HEIGHT,V_WIDTH,V_CHANN))
-                audio = audio_holder[gpu_index * BATCH_SIZE:(gpu_index + 1) * BATCH_SIZE, :, :, :, :, :]
-                audio = tf.reshape(audio,shape=(BATCH_SIZE*SEQ_LEN,A_NUM,A_HEIGHT,A_WIDTH,A_CHANN))
-                labels = labels_holder[gpu_index * BATCH_SIZE:(gpu_index + 1) * BATCH_SIZE, :]
-                scores = scores_holder[gpu_index * BATCH_SIZE:(gpu_index + 1) * BATCH_SIZE, :]
+    #             # predict scores
+    #             logits = score_pred(visual,audio,scores,weights,biases,audio_weights,audio_biases,
+    #                                 None,None,dropout_holder,training_holder)
+    #             logits_list.append(logits)
 
-                # predict scores
-                logits = score_pred(visual,audio,scores,weights,biases,audio_weights,audio_biases,
-                                    None,None,dropout_holder,training_holder)
-                logits_list.append(logits)
+    #             # calculate loss & gradients
+    #             loss_name_scope = ('gpud_%d_loss' % gpu_index)
+    #             loss = tower_loss(loss_name_scope, logits, labels)
+    #             varlist = tf.trainable_variables()  # 全部训练
+    #             grads_train = opt_train.compute_gradients(loss, varlist)
+    #             thresh = GRAD_THRESHOLD  # 梯度截断 防止爆炸
+    #             grads_train_cap = [(tf.clip_by_value(grad, -thresh, thresh), var) for grad, var in grads_train]
+    #             tower_grads_train.append(grads_train_cap)
+    #             loss_list.append(loss)
+    #     grads_t = average_gradients(tower_grads_train)
+    #     train_op = opt_train.apply_gradients(grads_t, global_step=global_step)
+    #     null_op = tf.no_op()
 
-                # calculate loss & gradients
-                loss_name_scope = ('gpud_%d_loss' % gpu_index)
-                loss = tower_loss(loss_name_scope, logits, labels)
-                varlist = tf.trainable_variables()  # 全部训练
-                grads_train = opt_train.compute_gradients(loss, varlist)
-                thresh = GRAD_THRESHOLD  # 梯度截断 防止爆炸
-                grads_train_cap = [(tf.clip_by_value(grad, -thresh, thresh), var) for grad, var in grads_train]
-                tower_grads_train.append(grads_train_cap)
-                loss_list.append(loss)
-        grads_t = average_gradients(tower_grads_train)
-        train_op = opt_train.apply_gradients(grads_t, global_step=global_step)
-        null_op = tf.no_op()
+    #     # saver
+    #     saver_overall = tf.train.Saver()
 
-        # saver
-        saver_overall = tf.train.Saver()
+    #     # session
+    #     config = tf.ConfigProto(allow_soft_placement=True)
+    #     config.gpu_options.allow_growth = True
+    #     sess = tf.Session(config=config)
+    #     init = tf.global_variables_initializer()
+    #     sess.run(init)
 
-        # session
-        config = tf.ConfigProto(allow_soft_placement=True)
-        config.gpu_options.allow_growth = True
-        sess = tf.Session(config=config)
-        init = tf.global_variables_initializer()
-        sess.run(init)
+    #     # load model
+    #     if load_ckpt_model:
+    #         print('Ckpt Model Restoring: ', ckpt_model_path)
+    #         saver_overall.restore(sess, ckpt_model_path)
+    #         print('Ckpt Model Resrtored !')
 
-        # load model
-        if load_ckpt_model:
-            print('Ckpt Model Restoring: ', ckpt_model_path)
-            saver_overall.restore(sess, ckpt_model_path)
-            print('Ckpt Model Resrtored !')
+    #     # train & test preparation
+    #     data_test_concat, test_ids = test_data_build(data_test, SEQ_LEN)
+    #     max_test_step = math.ceil(len(data_test_concat['visual_concat']) / BATCH_SIZE / GPU_NUM)
+    #     train_scheme = train_scheme_build(data_train,SEQ_LEN,SEQ_INTERVAL)
+    #     epoch_step = math.ceil(len(train_scheme) / BATCH_SIZE / GPU_NUM)
 
-        # train & test preparation
-        data_test_concat, test_ids = test_data_build(data_test, SEQ_LEN)
-        max_test_step = math.ceil(len(data_test_concat['visual_concat']) / BATCH_SIZE / GPU_NUM)
-        train_scheme = train_scheme_build(data_train,SEQ_LEN,SEQ_INTERVAL)
-        epoch_step = math.ceil(len(train_scheme) / BATCH_SIZE / GPU_NUM)
+    #     # Beging training
+    #     ob_loss = []
+    #     timepoint = time.time()
+    #     for step in range(MAXSTEPS):
+    #         visual_b, audio_b, score_b, label_b = get_batch_train(data_train, train_scheme, step,GPU_NUM,BATCH_SIZE,SEQ_LEN)
+    #         observe = sess.run([train_op] + loss_list + logits_list + [global_step, lr],
+    #                            feed_dict={visual_holder: visual_b,
+    #                                       audio_holder: audio_b,
+    #                                       scores_holder: score_b,
+    #                                       labels_holder: label_b,
+    #                                       dropout_holder: 0.1,
+    #                                       training_holder: True})
+    #         loss_batch = np.array(observe[1:3])
+    #         ob_loss.append(loss_batch)  # 卡0和卡1返回的是来自同一个batch的两部分loss，求平均
 
-        # Beging training
-        ob_loss = []
-        timepoint = time.time()
-        for step in range(MAXSTEPS):
-            visual_b, audio_b, score_b, label_b = get_batch_train(data_train, train_scheme, step,GPU_NUM,BATCH_SIZE,SEQ_LEN)
-            observe = sess.run([train_op] + loss_list + logits_list + [global_step, lr],
-                               feed_dict={visual_holder: visual_b,
-                                          audio_holder: audio_b,
-                                          scores_holder: score_b,
-                                          labels_holder: label_b,
-                                          dropout_holder: 0.1,
-                                          training_holder: True})
-            loss_batch = np.array(observe[1:3])
-            ob_loss.append(loss_batch)  # 卡0和卡1返回的是来自同一个batch的两部分loss，求平均
+    #         # save checkpoint &  evaluate
+    #         epoch = step / epoch_step
+    #         if step % epoch_step == 0 or (step + 1) == MAXSTEPS:
+    #             if step == 0 and test_mode == 0:
+    #                 continue
+    #             duration = time.time() - timepoint
+    #             timepoint = time.time()
+    #             loss_array = np.array(ob_loss)
+    #             ob_loss.clear()
+    #             print('Step %d: %.3f sec' % (step, duration))
+    #             print('Evaluate: ', step, 'Epoch: ', epoch)
+    #             print('Average Loss: ', np.mean(loss_array), 'Min Loss: ', np.min(loss_array), 'Max Loss: ', np.max(loss_array))
 
-            # save checkpoint &  evaluate
-            epoch = step / epoch_step
-            if step % epoch_step == 0 or (step + 1) == MAXSTEPS:
-                if step == 0 and test_mode == 0:
-                    continue
-                duration = time.time() - timepoint
-                timepoint = time.time()
-                loss_array = np.array(ob_loss)
-                ob_loss.clear()
-                print('Step %d: %.3f sec' % (step, duration))
-                print('Evaluate: ', step, 'Epoch: ', epoch)
-                print('Average Loss: ', np.mean(loss_array), 'Min Loss: ', np.min(loss_array), 'Max Loss: ', np.max(loss_array))
+    #             # 按顺序预测测试集中每个视频的每个分段，全部预测后在每个视频内部排序，计算指标
+    #             pred_scores = []  # 每个batch输出的预测得分
+    #             for test_step in range(max_test_step):
+    #                 visual_b, audio_b, score_b = get_batch_test(data_test_concat, test_step,
+    #                                                             GPU_NUM, BATCH_SIZE, SEQ_LEN)
+    #                 logits_temp_list = sess.run(logits_list, feed_dict={visual_holder: visual_b,
+    #                                                                     audio_holder: audio_b,
+    #                                                                     scores_holder: score_b,
+    #                                                                     training_holder: False,
+    #                                                                     dropout_holder: 0})
+    #                 for preds in logits_temp_list:
+    #                     pred_scores.append(preds.reshape((-1)))
+    #             a, p, r, f = evaluation(pred_scores, data_test, test_ids, SEQ_LEN)
+    #             print('Accuracy: %.3f, Precision: %.3f, Recall: %.3f, F1: %.3f' % (a, p, r, f))
 
-                # 按顺序预测测试集中每个视频的每个分段，全部预测后在每个视频内部排序，计算指标
-                pred_scores = []  # 每个batch输出的预测得分
-                for test_step in range(max_test_step):
-                    visual_b, audio_b, score_b = get_batch_test(data_test_concat, test_step,
-                                                                GPU_NUM, BATCH_SIZE, SEQ_LEN)
-                    logits_temp_list = sess.run(logits_list, feed_dict={visual_holder: visual_b,
-                                                                        audio_holder: audio_b,
-                                                                        scores_holder: score_b,
-                                                                        training_holder: False,
-                                                                        dropout_holder: 0})
-                    for preds in logits_temp_list:
-                        pred_scores.append(preds.reshape((-1)))
-                a, p, r, f = evaluation(pred_scores, data_test, test_ids, SEQ_LEN)
-                print('Accuracy: %.3f, Precision: %.3f, Recall: %.3f, F1: %.3f' % (a, p, r, f))
+    #             if test_mode == 1:
+    #                 return
 
-                if test_mode == 1:
-                    return
+    #             # save model
+    #             if step > MIN_TRAIN_STEPS - PRESTEPS and f >= (max_f1 - 0.025):
+    #                 if f > max_f1:
+    #                     max_f1 = f
+    #                 model_path_base = model_save_dir + 'MAXF1_' + str('%.3f' % f)
+    #                 name_id = 0
+    #                 while os.path.isfile(model_path_base + '_%d.meta'%name_id):
+    #                     name_id += 1
+    #                 model_path = model_path_base + '_%d'%name_id
+    #                 saver_overall.save(sess, model_path)
+    #                 print('Model Saved: ', model_path, '\n')
 
-                # save model
-                if step > MIN_TRAIN_STEPS - PRESTEPS and f >= (max_f1 - 0.025):
-                    if f > max_f1:
-                        max_f1 = f
-                    model_path_base = model_save_dir + 'MAXF1_' + str('%.3f' % f)
-                    name_id = 0
-                    while os.path.isfile(model_path_base + '_%d.meta'%name_id):
-                        name_id += 1
-                    model_path = model_path_base + '_%d'%name_id
-                    saver_overall.save(sess, model_path)
-                    print('Model Saved: ', model_path, '\n')
+    #         if step % 2000 == 0 and step > 0:
+    #             model_path = model_save_dir + 'STEP_' + str(step + PRESTEPS)
+    #             saver_overall.save(sess, model_path)
+    #             print('Model Saved: ', step + PRESTEPS)
 
-            if step % 2000 == 0 and step > 0:
-                model_path = model_save_dir + 'STEP_' + str(step + PRESTEPS)
-                saver_overall.save(sess, model_path)
-                print('Model Saved: ', step + PRESTEPS)
-
-            # saving final model
-        model_path = model_save_dir + 'STEP_' + str(MAXSTEPS + PRESTEPS)
-        saver_overall.save(sess, model_path)
-        print('Model Saved: ', MAXSTEPS + PRESTEPS)
+    #         # saving final model
+    #     model_path = model_save_dir + 'STEP_' + str(MAXSTEPS + PRESTEPS)
+    #     saver_overall.save(sess, model_path)
+    #     print('Model Saved: ', MAXSTEPS + PRESTEPS)
 
     return
 
@@ -571,12 +571,7 @@ print('LR: ',LR_TRAIN)
 print('Label: ', LABEL_PATH)
 print('Min Training Steps: ',MIN_TRAIN_STEPS)
 print('*' * 50,'\n')
-config = tf.ConfigProto(allow_soft_placement=True)
-config.gpu_options.allow_growth = True
-sess = tf.Session(config=config)
-init = tf.global_variables_initializer()
-sess.run(init)
-print('Done')
+
 # run_training(data_train, data_valid, 0)  # for training
 # run_training(data_train, data_test, 1)  # for testing
 # _ = train_scheme_build(data_train,SEQ_LEN,SEQ_INTERVAL)

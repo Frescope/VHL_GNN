@@ -560,7 +560,7 @@ def run_training(data_train, data_test, test_mode):
 
     return
 
-print('Hi Begin!')
+print('\n\nHi Begin!')
 label_record = load_label(LABEL_PATH)
 data_train, data_valid, data_test = load_data(label_record, FEATURE_BASE)
 print('Data loaded !')
@@ -572,7 +572,7 @@ print('Label: ', LABEL_PATH)
 print('Min Training Steps: ',MIN_TRAIN_STEPS)
 print('*' * 50,'\n')
 
-# run_training(data_train, data_valid, 0)  # for training
+run_training(data_train, data_valid, 0)  # for training
 # run_training(data_train, data_test, 1)  # for testing
 # _ = train_scheme_build(data_train,SEQ_LEN,SEQ_INTERVAL)
 

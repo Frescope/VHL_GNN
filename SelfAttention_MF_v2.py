@@ -11,8 +11,8 @@ import math
 import json
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, mean_squared_error
 import random
-import Transformer
-from Transformer import self_attention
+# import Transformer
+# from Transformer import self_attention
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = '0,2'
 # global paras

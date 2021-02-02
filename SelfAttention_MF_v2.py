@@ -560,26 +560,19 @@ def run_training(data_train, data_test, test_mode):
 
     return
 
-def main(self):
-    label_record = load_label(LABEL_PATH)
-    data_train, data_valid, data_test = load_data(label_record, FEATURE_BASE)
-    print('Data loaded !')
+print('Hi Begin!')
+label_record = load_label(LABEL_PATH)
+data_train, data_valid, data_test = load_data(label_record, FEATURE_BASE)
+print('Data loaded !')
 
-    print('\n','*'*20,'Settings','*'*20)
-    print('Model Dir: ',model_save_dir)
-    print('LR: ',LR_TRAIN)
-    print('Label: ', LABEL_PATH)
-    print('Min Training Steps: ',MIN_TRAIN_STEPS)
-    print('*' * 50,'\n')
+print('\n','*'*20,'Settings','*'*20)
+print('Model Dir: ',model_save_dir)
+print('LR: ',LR_TRAIN)
+print('Label: ', LABEL_PATH)
+print('Min Training Steps: ',MIN_TRAIN_STEPS)
+print('*' * 50,'\n')
 
-    run_training(data_train, data_valid, 0)  # for training
-    # run_training(data_train, data_test, 1)  # for testing
-    # _ = train_scheme_build(data_train,SEQ_LEN,SEQ_INTERVAL)
-
-if __name__ == "__main__":
-    tf.app.run()
-
-
-
-
+run_training(data_train, data_valid, 0)  # for training
+# run_training(data_train, data_test, 1)  # for testing
+# _ = train_scheme_build(data_train,SEQ_LEN,SEQ_INTERVAL)
 

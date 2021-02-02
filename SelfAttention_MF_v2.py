@@ -572,7 +572,7 @@ print('Label: ', LABEL_PATH)
 print('Min Training Steps: ',MIN_TRAIN_STEPS)
 print('*' * 50,'\n')
 
-# run_training(data_train, data_valid, 0)  # for training
+run_training(data_train, data_valid, 0)  # for training
 # run_training(data_train, data_test, 1)  # for testing
 # _ = train_scheme_build(data_train,SEQ_LEN,SEQ_INTERVAL)
 

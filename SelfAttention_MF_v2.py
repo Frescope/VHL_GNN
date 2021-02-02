@@ -23,10 +23,10 @@ from Transformer import self_attention
 # os.environ["CUDA_VISIBLE_DEVICES"] = '0,1'
 # global paras
 PRESTEPS = 0
-MAXSTEPS = 24000
+MAXSTEPS = 18000
 MIN_TRAIN_STEPS = 0
 WARMUP_STEP = 3000
-LR_TRAIN = 1e-7
+LR_TRAIN = 5e-7
 HIDDEN_SIZE = 128  # for lstm
 
 EVL_EPOCHS = 1  # epochs for evaluation
@@ -643,12 +643,12 @@ def run_training(data_train, data_test, test_mode):
 
             if step % 2000 == 0 and step > 0:
                 model_path = model_save_dir + 'STEP_' + str(step + PRESTEPS)
-                saver_overall.save(sess, model_path)
+                # saver_overall.save(sess, model_path)
                 logging.info('Model Saved: '+str(step + PRESTEPS))
 
             # saving final model
         model_path = model_save_dir + 'STEP_' + str(MAXSTEPS + PRESTEPS)
-        saver_overall.save(sess, model_path)
+        # saver_overall.save(sess, model_path)
         logging.info('Model Saved: '+str(MAXSTEPS + PRESTEPS))
 
     return
@@ -665,7 +665,7 @@ def main(self):
     logging.info('Min Training Steps: '+str(MIN_TRAIN_STEPS))
     logging.info('*' * 50+'\n')
 
-    run_training(data_train, data_valid, 0)  # for training
+    run_training(data_train, data_train, 0)  # for training
     # run_training(data_train, data_test, 1)  # for testing
 
 if __name__ == "__main__":

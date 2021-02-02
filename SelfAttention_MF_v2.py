@@ -16,16 +16,17 @@ import math
 import json
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, mean_squared_error
 import random
+import logging
 import Transformer
 from Transformer import self_attention
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '0,1'
+# os.environ["CUDA_VISIBLE_DEVICES"] = '0,1'
 # global paras
 PRESTEPS = 0
 MAXSTEPS = 24000
 MIN_TRAIN_STEPS = 0
 WARMUP_STEP = 3000
-LR_TRAIN = 1e-7
+LR_TRAIN = 1e-6
 HIDDEN_SIZE = 128  # for lstm
 
 EVL_EPOCHS = 1  # epochs for evaluation
@@ -61,6 +62,9 @@ load_ckpt_model = False
 ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/STEP_24000'
 # ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/MAXF1_0.304_0'
 
+logging.basicConfig(level=logging.INFO)
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.integer):
@@ -85,7 +89,7 @@ def load_data(label_record, feature_base):
     data_valid = {}
     data_test = {}
     for vid in vids:
-        print('-'*20, vid, '-'*20)
+        logging.info('-'*20+str(vid)+'-'*20)
         # load data & label
         # label顺序：train-valid-test
         visual_path = feature_base + vid + '//features_visual_ovr.npy'
@@ -120,9 +124,8 @@ def load_data(label_record, feature_base):
         temp_test['scores'] = scores[test_pos:][:len(temp_test['visual'])]  # 截断
         data_test[vid] = temp_test
 
-        print('Data(train, valid, test): ',temp_train['visual'].shape, temp_valid['audio'].shape, temp_test['labels'].shape)
-        print('Scores(train, valid, test): ', len(temp_train['scores']), len(temp_valid['scores']),
-            len(temp_test['scores']))
+        logging.info('Data(train, valid, test): '+str(temp_train['visual'].shape)+str(temp_valid['audio'].shape)+str(temp_test['labels'].shape))
+        logging.info('Scores(train, valid, test): '+str(len(temp_train['scores']))+str(len(temp_valid['scores']))+str(len(temp_test['scores'])))
 
     return data_train, data_valid, data_test
 
@@ -153,7 +156,6 @@ def train_scheme_build(data_train,seq_len,interval):
             seq_list.append(neg_list[k])
             k += 1
         seq_list = seq_list + pos_list[k:] + neg_list[k:]
-        # print(vid, vlength, len(pos_list), len(neg_list), len(seq_list))
 
     random.shuffle(seq_list)
     return seq_list
@@ -177,8 +179,6 @@ def train_scheme_build_v2(data_train,seq_len,interval):
             else:
                 neg_list.append((vid,seq_start,seq_label))
             seq_start += interval
-
-        # print(vid, vlength, len(pos_list), len(neg_list), len(seq_list))
 
     random.shuffle(pos_list)
     random.shuffle(neg_list)
@@ -210,7 +210,7 @@ def get_batch_train(data,train_scheme,step,gpu_num,bc,seq_len):
         score.append(score_seq)
         label.append(label_seq)
         if np.sum(label_seq - label_seq_orgin) > 0:
-            print('\n\nError!',step,pos,vid,i,label_seq,label_seq_orgin,'\n\n')
+            logging.info('\n\nError!',step,pos,vid,i,label_seq,label_seq_orgin,'\n\n')
 
     # reshape
     visual = np.array(visual).reshape((gpu_num*bc,seq_len,V_NUM,V_HEIGHT,V_WIDTH,V_CHANN))
@@ -247,7 +247,7 @@ def get_batch_train_v2(data,train_scheme,step,gpu_num,bc,seq_len):
         score.append(score_seq)
         label.append(label_seq)
         if np.sum(label_seq - label_seq_orgin) > 0:
-            print('\n\nPos Error!',step,position,vid,i,label_seq,label_seq_orgin,'\n\n')
+            logging.info('\n\nPos Error!',step,position,vid,i,label_seq,label_seq_orgin,'\n\n')
     # 提取一个负样本序列
     position = step % neg_num
     vid = neg_list[position][0]
@@ -263,7 +263,7 @@ def get_batch_train_v2(data,train_scheme,step,gpu_num,bc,seq_len):
     score.append(score_seq)
     label.append(label_seq)
     if np.sum(label_seq - label_seq_orgin) > 0:
-        print('\n\nNeg Error!', step, position, vid, 0, label_seq, label_seq_orgin, '\n\n')
+        logging.info('\n\nNeg Error!', step, position, vid, 0, label_seq, label_seq_orgin, '\n\n')
 
     # reshape
     visual = np.array(visual).reshape((gpu_num*bc,seq_len,V_NUM,V_HEIGHT,V_WIDTH,V_CHANN))
@@ -315,11 +315,11 @@ def test_data_build(data_test, seq_len):
     data_test_concat['audio_concat'] = audio_concat.reshape((-1,seq_len,A_NUM,A_HEIGHT,A_WIDTH,A_CHANN))
     data_test_concat['scores_concat'] = score_concat.reshape((-1,seq_len))
     data_test_concat['labels'] = labels  # a list
-    print('Test data concatenated: ',
-          data_test_concat['visual_concat'].shape,
-          data_test_concat['audio_concat'].shape,
-          data_test_concat['scores_concat'].shape,
-          len(data_test_concat['labels']))
+    logging.info('Test data concatenated: '+
+          str(data_test_concat['visual_concat'].shape)+
+          str(data_test_concat['audio_concat'].shape)+
+          str(data_test_concat['scores_concat'].shape)+
+          str(len(data_test_concat['labels'])))
 
     return data_test_concat, test_ids
 
@@ -572,9 +572,9 @@ def run_training(data_train, data_test, test_mode):
 
         saver_overall = tf.train.Saver()
         if load_ckpt_model:
-            print('Ckpt Model Restoring: ', ckpt_model_path)
+            logging.info('Ckpt Model Restoring: '+ckpt_model_path)
             saver_overall.restore(sess, ckpt_model_path)
-            print('Ckpt Model Resrtored !')
+            logging.info('Ckpt Model Resrtored !')
 
         # train & test preparation
         data_test_concat, test_ids = test_data_build(data_test, SEQ_LEN)
@@ -607,9 +607,9 @@ def run_training(data_train, data_test, test_mode):
                 timepoint = time.time()
                 loss_array = np.array(ob_loss)
                 ob_loss.clear()
-                print('Step %d: %.3f sec' % (step, duration))
-                print('Evaluate: ', step, 'Epoch: ', epoch)
-                print('Average Loss: ', np.mean(loss_array), 'Min Loss: ', np.min(loss_array), 'Max Loss: ', np.max(loss_array))
+                logging.info(' Step %d: %.3f sec' % (step, duration))
+                logging.info(' Evaluate: '+str(step)+'Epoch: '+str(epoch))
+                logging.info(' Average Loss: '+str(np.mean(loss_array))+'Min Loss: '+str(np.min(loss_array))+'Max Loss: '+str(np.max(loss_array)))
 
                 # 按顺序预测测试集中每个视频的每个分段，全部预测后在每个视频内部排序，计算指标
                 pred_scores = []  # 每个batch输出的预测得分
@@ -624,7 +624,7 @@ def run_training(data_train, data_test, test_mode):
                     for preds in logits_temp_list:
                         pred_scores.append(preds.reshape((-1)))
                 a, p, r, f = evaluation(pred_scores, data_test, test_ids, SEQ_LEN)
-                print('Accuracy: %.3f, Precision: %.3f, Recall: %.3f, F1: %.3f' % (a, p, r, f))
+                logging.info('Accuracy: %.3f, Precision: %.3f, Recall: %.3f, F1: %.3f' % (a, p, r, f))
 
                 if test_mode == 1:
                     return
@@ -639,31 +639,31 @@ def run_training(data_train, data_test, test_mode):
                         name_id += 1
                     model_path = model_path_base + '_%d'%name_id
                     saver_overall.save(sess, model_path)
-                    print('Model Saved: ', model_path, '\n')
+                    logging.info('Model Saved: '+model_path+'\n')
 
             if step % 2000 == 0 and step > 0:
                 model_path = model_save_dir + 'STEP_' + str(step + PRESTEPS)
                 saver_overall.save(sess, model_path)
-                print('Model Saved: ', step + PRESTEPS)
+                logging.info('Model Saved: '+str(step + PRESTEPS))
 
             # saving final model
         model_path = model_save_dir + 'STEP_' + str(MAXSTEPS + PRESTEPS)
         saver_overall.save(sess, model_path)
-        print('Model Saved: ', MAXSTEPS + PRESTEPS)
+        logging.info('Model Saved: '+str(MAXSTEPS + PRESTEPS))
 
     return
 
 def main(self):
     label_record = load_label(LABEL_PATH)
     data_train, data_valid, data_test = load_data(label_record, FEATURE_BASE)
-    print('Data loaded !')
+    logging.info('Data loaded !')
 
-    print('\n','*'*20,'Settings','*'*20)
-    print('Model Dir: ',model_save_dir)
-    print('LR: ',LR_TRAIN)
-    print('Label: ', LABEL_PATH)
-    print('Min Training Steps: ',MIN_TRAIN_STEPS)
-    print('*' * 50,'\n')
+    logging.info('\n'+'*'*20+'Settings'+'*'*20)
+    logging.info('Model Dir: '+model_save_dir)
+    logging.info('LR: '+str(LR_TRAIN))
+    logging.info('Label: '+str(LABEL_PATH))
+    logging.info('Min Training Steps: '+str(MIN_TRAIN_STEPS))
+    logging.info('*' * 50+'\n')
 
     run_training(data_train, data_valid, 0)  # for training
     # run_training(data_train, data_test, 1)  # for testing

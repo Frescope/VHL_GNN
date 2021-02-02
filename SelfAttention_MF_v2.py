@@ -23,10 +23,10 @@ from Transformer import self_attention
 # os.environ["CUDA_VISIBLE_DEVICES"] = '0,1'
 # global paras
 PRESTEPS = 0
-MAXSTEPS = 18000
+MAXSTEPS = 20000
 MIN_TRAIN_STEPS = 0
 WARMUP_STEP = 3000
-LR_TRAIN = 5e-7
+LR_TRAIN = 1e-7
 HIDDEN_SIZE = 128  # for lstm
 
 EVL_EPOCHS = 1  # epochs for evaluation

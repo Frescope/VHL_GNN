@@ -638,7 +638,7 @@ def run_training(data_train, data_test, test_mode):
                     while os.path.isfile(model_path_base + '_%d.meta'%name_id):
                         name_id += 1
                     model_path = model_path_base + '_%d'%name_id
-                    saver_overall.save(sess, model_path)
+                    # saver_overall.save(sess, model_path)
                     logging.info('Model Saved: '+model_path+'\n')
 
             if step % 2000 == 0 and step > 0:
@@ -665,7 +665,7 @@ def main(self):
     logging.info('Min Training Steps: '+str(MIN_TRAIN_STEPS))
     logging.info('*' * 50+'\n')
 
-    run_training(data_train, data_train, 0)  # for training
+    run_training(data_test, data_test, 0)  # for training
     # run_training(data_train, data_test, 1)  # for testing
 
 if __name__ == "__main__":

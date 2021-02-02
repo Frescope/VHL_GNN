@@ -466,18 +466,17 @@ def run_training(data_train, data_test, test_mode):
         grads_t = average_gradients(tower_grads_train)
         train_op = opt_train.apply_gradients(grads_t, global_step=global_step)
         null_op = tf.no_op()
-        print('Chcek')
-        return
+
         # saver
         saver_overall = tf.train.Saver()
-
+        print('Check')
         # session
         config = tf.ConfigProto(allow_soft_placement=True)
         config.gpu_options.allow_growth = True
         sess = tf.Session(config=config)
         init = tf.global_variables_initializer()
         sess.run(init)
-
+        print('Chcek1')
         # load model
         if load_ckpt_model:
             print('Ckpt Model Restoring: ', ckpt_model_path)
@@ -489,7 +488,8 @@ def run_training(data_train, data_test, test_mode):
         max_test_step = math.ceil(len(data_test_concat['visual_concat']) / BATCH_SIZE / GPU_NUM)
         train_scheme = train_scheme_build(data_train,SEQ_LEN,SEQ_INTERVAL)
         epoch_step = math.ceil(len(train_scheme) / BATCH_SIZE / GPU_NUM)
-
+        print('Chcek2')
+        return
         # Beging training
         ob_loss = []
         timepoint = time.time()

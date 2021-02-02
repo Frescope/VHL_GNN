@@ -6,13 +6,13 @@
 import os
 import time
 import numpy as np
-# import tensorflow as tf
+import tensorflow as tf
 import math
 import json
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, mean_squared_error
 import random
-# import Transformer
-# from Transformer import self_attention
+import Transformer
+from Transformer import self_attention
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = '0,2'
 # global paras
@@ -33,8 +33,8 @@ GPU_NUM = 2
 BATCH_SIZE = 1
 SEQ_INTERVAL = 1
 
-# D_MODEL = Transformer.D_MODEL
-# SEQ_LEN = Transformer.SEQ_LEN
+D_MODEL = Transformer.D_MODEL
+SEQ_LEN = Transformer.SEQ_LEN
 
 V_NUM = 2  # 3D卷积的最高一维
 V_HEIGHT = 7

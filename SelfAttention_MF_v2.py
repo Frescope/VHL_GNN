@@ -32,7 +32,7 @@ HIDDEN_SIZE = 128  # for lstm
 EVL_EPOCHS = 1  # epochs for evaluation
 L2_LAMBDA = 0.005  # weightdecay loss
 GRAD_THRESHOLD = 10.0  # gradient threshold
-MAX_F1 = 0.3
+MAX_F1 = 0.36
 
 GPU_NUM = 2
 BATCH_SIZE = 2
@@ -638,17 +638,17 @@ def run_training(data_train, data_test, test_mode):
                     while os.path.isfile(model_path_base + '_%d.meta'%name_id):
                         name_id += 1
                     model_path = model_path_base + '_%d'%name_id
-                    # saver_overall.save(sess, model_path)
+                    saver_overall.save(sess, model_path)
                     logging.info('Model Saved: '+model_path+'\n')
 
-            if step % 2000 == 0 and step > 0:
+            if step % 500 == 0 and step > 0:
                 model_path = model_save_dir + 'STEP_' + str(step + PRESTEPS)
-                # saver_overall.save(sess, model_path)
+                saver_overall.save(sess, model_path)
                 logging.info('Model Saved: '+str(step + PRESTEPS))
 
             # saving final model
         model_path = model_save_dir + 'STEP_' + str(MAXSTEPS + PRESTEPS)
-        # saver_overall.save(sess, model_path)
+        saver_overall.save(sess, model_path)
         logging.info('Model Saved: '+str(MAXSTEPS + PRESTEPS))
 
     return
@@ -665,7 +665,7 @@ def main(self):
     logging.info('Min Training Steps: '+str(MIN_TRAIN_STEPS))
     logging.info('*' * 50+'\n')
 
-    run_training(data_test, data_test, 0)  # for training
+    run_training(data_train, data_test, 0)  # for training
     # run_training(data_train, data_test, 1)  # for testing
 
 if __name__ == "__main__":

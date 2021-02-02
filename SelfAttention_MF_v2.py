@@ -33,8 +33,8 @@ GPU_NUM = 2
 BATCH_SIZE = 1
 SEQ_INTERVAL = 1
 
-D_MODEL = Transformer.D_MODEL
-SEQ_LEN = Transformer.SEQ_LEN
+# D_MODEL = Transformer.D_MODEL
+# SEQ_LEN = Transformer.SEQ_LEN
 
 V_NUM = 2  # 3D卷积的最高一维
 V_HEIGHT = 7

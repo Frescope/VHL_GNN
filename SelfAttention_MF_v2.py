@@ -2,6 +2,10 @@
 # 实验1：增强随机性。混排所有视频的所有序列，训练前制作一个包含所有视频所有序列的train_scheme
 # 每个序列包含vid，序列起始，序列标签，getbatch时根据序列信息找到对应视频的对应片段
 # 沿着train_scheme的序列列表顺序训练，所有的序列全部训练过一次作为一个epoch
+# 实验2：以固定比例在训练中使用正样本与负样本，在制作train_scheme时生成一个正样本列表与一个负样本列表
+# 训练时提取固定数量的序列，先从正样本列表中取n-1个，再从负样本列表中取1个，组成一个batch，注意step与两个列表索引之间的转换
+# 实验3：使用与训练时相同的方式进行测试，即以相同的序列间隔采集测试序列，对各个片段得到的预测结果做平均，作为测试时的最终预测
+#
 
 
 import os
@@ -15,23 +19,22 @@ import random
 import Transformer
 from Transformer import self_attention
 
-# os.environ["CUDA_VISIBLE_DEVICES"] = '0,2'
+os.environ["CUDA_VISIBLE_DEVICES"] = '0,1'
 # global paras
-load_ckpt_model = False
 PRESTEPS = 0
 MAXSTEPS = 24000
 MIN_TRAIN_STEPS = 0
-WARMUP_STEP = 5000
-LR_TRAIN = 1e-6
+WARMUP_STEP = 3000
+LR_TRAIN = 1e-7
 HIDDEN_SIZE = 128  # for lstm
 
 EVL_EPOCHS = 1  # epochs for evaluation
 L2_LAMBDA = 0.005  # weightdecay loss
 GRAD_THRESHOLD = 10.0  # gradient threshold
-MAX_F1 = 0.27
+MAX_F1 = 0.3
 
 GPU_NUM = 2
-BATCH_SIZE = 1
+BATCH_SIZE = 2
 SEQ_INTERVAL = 1
 
 D_MODEL = Transformer.D_MODEL
@@ -50,11 +53,13 @@ A_CHANN = 128
 # path & base
 LABEL_PATH = '//data//linkang//bilibili//label_record_zmn_24s.json'
 FEATURE_BASE = '//data//linkang//bilibili//feature//'
-
+visual_model_path = '../../model_HL/mosi_pretrained/sports1m_finetuning_ucf101.model'
+audio_model_path = '../../model_HL_v2/mosi_pretrained/MINMSE_0.019'
 model_save_dir = '//data//linkang//model_HL_v3//model_bilibili_SA_2//'
 
-# ckpt_model_path = '../../model_HL_v3/model_bilibili_SA/STEP_2000'
-ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/MAXF1_0.272_0'
+load_ckpt_model = False
+ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/STEP_24000'
+# ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/MAXF1_0.304_0'
 
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -153,6 +158,32 @@ def train_scheme_build(data_train,seq_len,interval):
     random.shuffle(seq_list)
     return seq_list
 
+def train_scheme_build_v2(data_train,seq_len,interval):
+    # 固定正负样本比例的版本
+    # train_scheme = [pos_list,neg_list]
+    # pos_list = [(vid,seq_start,seq_label),]
+    PN_THRESH = 1  # 正负样本分界
+    pos_list = []
+    neg_list = []
+    for vid in data_train:
+        label = data_train[vid]['labels']
+        vlength = len(label)
+        # 对每个视频遍历所有将提取的序列，根据门限确定正负样本，归入相应的列表
+        seq_start = 0
+        while seq_start + seq_len <= vlength:
+            seq_label = label[seq_start:seq_start+seq_len]
+            if np.sum(seq_label) >= PN_THRESH:
+                pos_list.append((vid,seq_start,seq_label))
+            else:
+                neg_list.append((vid,seq_start,seq_label))
+            seq_start += interval
+
+        # print(vid, vlength, len(pos_list), len(neg_list), len(seq_list))
+
+    random.shuffle(pos_list)
+    random.shuffle(neg_list)
+    return [pos_list,neg_list]
+
 def get_batch_train(data,train_scheme,step,gpu_num,bc,seq_len):
     # 按照train-scheme制作batch，每次选择gpu_num*bc个序列返回即可
 
@@ -165,9 +196,10 @@ def get_batch_train(data,train_scheme,step,gpu_num,bc,seq_len):
     label = []
     for i in range(gpu_num * bc):
         # 每次提取一个序列
-        vid = train_scheme[step % seq_num][0]
-        start = train_scheme[step % seq_num][1]
-        label_seq_orgin = train_scheme[step % seq_num][2]
+        pos = (step * gpu_num * bc + i) % seq_num  # 序列位置
+        vid = train_scheme[pos][0]
+        start = train_scheme[pos][1]
+        label_seq_orgin = train_scheme[pos][2]
         end = start + seq_len
         visual_seq = data[vid]['visual'][start:end]
         audio_seq = data[vid]['audio'][start:end]
@@ -178,7 +210,60 @@ def get_batch_train(data,train_scheme,step,gpu_num,bc,seq_len):
         score.append(score_seq)
         label.append(label_seq)
         if np.sum(label_seq - label_seq_orgin) > 0:
-            print('\n\nError!',step,vid,i,label_seq,label_seq_orgin,'\n\n')
+            print('\n\nError!',step,pos,vid,i,label_seq,label_seq_orgin,'\n\n')
+
+    # reshape
+    visual = np.array(visual).reshape((gpu_num*bc,seq_len,V_NUM,V_HEIGHT,V_WIDTH,V_CHANN))
+    audio = np.array(audio).reshape((gpu_num*bc,seq_len,A_NUM,A_HEIGHT,A_WIDTH,A_CHANN))
+    score = np.array(score).reshape((gpu_num*bc,seq_len))
+    label = np.array(label).reshape((gpu_num*bc,seq_len))
+
+    return visual, audio, score, label
+
+def get_batch_train_v2(data,train_scheme,step,gpu_num,bc,seq_len):
+    # 对应固定正负样本比例的训练方式
+    pos_list, neg_list = train_scheme
+    pos_num = len(pos_list)
+    neg_num = len(neg_list)
+
+    # 每个step中从一个视频中提取gpu_num*bc个序列，顺序拼接后返回
+    visual = []
+    audio = []
+    score = []
+    label = []
+    for i in range(gpu_num * bc - 1):
+        # 每次提取n-1个正样本序列
+        position = (step * (gpu_num * bc - 1) + i) % pos_num  # 序列位置
+        vid = pos_list[position][0]
+        start = pos_list[position][1]
+        label_seq_orgin = pos_list[position][2]
+        end = start + seq_len
+        visual_seq = data[vid]['visual'][start:end]
+        audio_seq = data[vid]['audio'][start:end]
+        score_seq = data[vid]['scores'][start:end]
+        label_seq = data[vid]['labels'][start:end]
+        visual.append(visual_seq)
+        audio.append(audio_seq)
+        score.append(score_seq)
+        label.append(label_seq)
+        if np.sum(label_seq - label_seq_orgin) > 0:
+            print('\n\nPos Error!',step,position,vid,i,label_seq,label_seq_orgin,'\n\n')
+    # 提取一个负样本序列
+    position = step % neg_num
+    vid = neg_list[position][0]
+    start = neg_list[position][1]
+    label_seq_orgin = neg_list[position][2]
+    end = start + seq_len
+    visual_seq = data[vid]['visual'][start:end]
+    audio_seq = data[vid]['audio'][start:end]
+    score_seq = data[vid]['scores'][start:end]
+    label_seq = data[vid]['labels'][start:end]
+    visual.append(visual_seq)
+    audio.append(audio_seq)
+    score.append(score_seq)
+    label.append(label_seq)
+    if np.sum(label_seq - label_seq_orgin) > 0:
+        print('\n\nNeg Error!', step, position, vid, 0, label_seq, label_seq_orgin, '\n\n')
 
     # reshape
     visual = np.array(visual).reshape((gpu_num*bc,seq_len,V_NUM,V_HEIGHT,V_WIDTH,V_CHANN))
@@ -324,7 +409,7 @@ def tower_loss(name_scope,logits,labels):
     # ce = -y * (tf.log(logits)) * (1-logits) ** 2.0 *0.25 - (1 - y) * tf.log(1 - logits) * (logits) ** 2.0 * 0.75
     # loss = tf.reduce_sum(ce)
     ce = -y * (tf.log(logits)) - (1 - y) * tf.log(1 - logits)
-    loss = tf.reduce_mean(ce)
+    loss = tf.reduce_sum(ce)
     return loss
 
 def average_gradients(tower_grads):
@@ -433,10 +518,11 @@ def run_training(data_train, data_test, test_mode):
             audio_biases = {
                 'bc5': _variable_with_weight_decay('au_bc5', [256], 0.0000),
             }
-
+        varlist_visual = list(weights.values()) + list(biases.values())
+        varlist_audio = list(audio_weights.values()) + list(audio_biases.values())
         # training operations
         lr = noam_scheme(LR_TRAIN,global_step,WARMUP_STEP)
-        opt_train = tf.train.AdamOptimizer(lr)
+        opt_train = tf.train.AdamOptimizer(LR_TRAIN)
 
         # graph building
         tower_grads_train = []
@@ -460,6 +546,7 @@ def run_training(data_train, data_test, test_mode):
                 loss_name_scope = ('gpud_%d_loss' % gpu_index)
                 loss = tower_loss(loss_name_scope, logits, labels)
                 varlist = tf.trainable_variables()  # 全部训练
+                # varlist = list(set(varlist) - set(varlist_visual) - set(varlist_audio))
                 grads_train = opt_train.compute_gradients(loss, varlist)
                 thresh = GRAD_THRESHOLD  # 梯度截断 防止爆炸
                 grads_train_cap = [(tf.clip_by_value(grad, -thresh, thresh), var) for grad, var in grads_train]
@@ -467,10 +554,8 @@ def run_training(data_train, data_test, test_mode):
                 loss_list.append(loss)
         grads_t = average_gradients(tower_grads_train)
         train_op = opt_train.apply_gradients(grads_t, global_step=global_step)
-        null_op = tf.no_op()
-
-        # saver
-        saver_overall = tf.train.Saver()
+        if test_mode == 1:
+            train_op = tf.no_op()
 
         # session
         config = tf.ConfigProto(allow_soft_placement=True)
@@ -480,6 +565,12 @@ def run_training(data_train, data_test, test_mode):
         sess.run(init)
 
         # load model
+        saver_visual = tf.train.Saver(varlist_visual)
+        saver_audio = tf.train.Saver(varlist_audio)
+        saver_visual.restore(sess, visual_model_path)
+        saver_audio.restore(sess, audio_model_path)
+
+        saver_overall = tf.train.Saver()
         if load_ckpt_model:
             print('Ckpt Model Restoring: ', ckpt_model_path)
             saver_overall.restore(sess, ckpt_model_path)
@@ -488,14 +579,15 @@ def run_training(data_train, data_test, test_mode):
         # train & test preparation
         data_test_concat, test_ids = test_data_build(data_test, SEQ_LEN)
         max_test_step = math.ceil(len(data_test_concat['visual_concat']) / BATCH_SIZE / GPU_NUM)
-        train_scheme = train_scheme_build(data_train,SEQ_LEN,SEQ_INTERVAL)
-        epoch_step = math.ceil(len(train_scheme) / BATCH_SIZE / GPU_NUM)
+        train_scheme = train_scheme_build_v2(data_train,SEQ_LEN,SEQ_INTERVAL)
+        # epoch_step = math.ceil(len(train_scheme) / BATCH_SIZE / GPU_NUM)
+        epoch_step = math.ceil(len(train_scheme[0]) / (BATCH_SIZE*GPU_NUM-1))
 
         # Beging training
         ob_loss = []
         timepoint = time.time()
         for step in range(MAXSTEPS):
-            visual_b, audio_b, score_b, label_b = get_batch_train(data_train, train_scheme, step,GPU_NUM,BATCH_SIZE,SEQ_LEN)
+            visual_b, audio_b, score_b, label_b = get_batch_train_v2(data_train, train_scheme, step,GPU_NUM,BATCH_SIZE,SEQ_LEN)
             observe = sess.run([train_op] + loss_list + logits_list + [global_step, lr],
                                feed_dict={visual_holder: visual_b,
                                           audio_holder: audio_b,
@@ -575,7 +667,6 @@ def main(self):
 
     run_training(data_train, data_valid, 0)  # for training
     # run_training(data_train, data_test, 1)  # for testing
-    # _ = train_scheme_build(data_train,SEQ_LEN,SEQ_INTERVAL)
 
 if __name__ == "__main__":
     tf.app.run()

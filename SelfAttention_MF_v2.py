@@ -409,7 +409,7 @@ def tower_loss(name_scope,logits,labels):
     # ce = -y * (tf.log(logits)) * (1-logits) ** 2.0 *0.25 - (1 - y) * tf.log(1 - logits) * (logits) ** 2.0 * 0.75
     # loss = tf.reduce_sum(ce)
     ce = -y * (tf.log(logits)) - (1 - y) * tf.log(1 - logits)
-    loss = tf.reduce_sum(ce)
+    loss = tf.reduce_mean(ce)
     return loss
 
 def average_gradients(tower_grads):
@@ -572,9 +572,9 @@ def run_training(data_train, data_test, test_mode):
 
         saver_overall = tf.train.Saver()
         if load_ckpt_model:
-            logging.info('Ckpt Model Restoring: '+ckpt_model_path)
+            logging.info(' Ckpt Model Restoring: '+ckpt_model_path)
             saver_overall.restore(sess, ckpt_model_path)
-            logging.info('Ckpt Model Resrtored !')
+            logging.info(' Ckpt Model Resrtored !')
 
         # train & test preparation
         data_test_concat, test_ids = test_data_build(data_test, SEQ_LEN)
@@ -608,8 +608,8 @@ def run_training(data_train, data_test, test_mode):
                 loss_array = np.array(ob_loss)
                 ob_loss.clear()
                 logging.info(' Step %d: %.3f sec' % (step, duration))
-                logging.info(' Evaluate: '+str(step)+'Epoch: '+str(epoch))
-                logging.info(' Average Loss: '+str(np.mean(loss_array))+'Min Loss: '+str(np.min(loss_array))+'Max Loss: '+str(np.max(loss_array)))
+                logging.info(' Evaluate: '+str(step)+' Epoch: '+str(epoch))
+                logging.info(' Average Loss: '+str(np.mean(loss_array))+' Min Loss: '+str(np.min(loss_array))+' Max Loss: '+str(np.max(loss_array)))
 
                 # 按顺序预测测试集中每个视频的每个分段，全部预测后在每个视频内部排序，计算指标
                 pred_scores = []  # 每个batch输出的预测得分
@@ -658,7 +658,7 @@ def main(self):
     data_train, data_valid, data_test = load_data(label_record, FEATURE_BASE)
     logging.info('Data loaded !')
 
-    logging.info('\n'+'*'*20+'Settings'+'*'*20)
+    logging.info('*'*20+'Settings'+'*'*20)
     logging.info('Model Dir: '+model_save_dir)
     logging.info('LR: '+str(LR_TRAIN))
     logging.info('Label: '+str(LABEL_PATH))

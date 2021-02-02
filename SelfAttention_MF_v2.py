@@ -52,11 +52,11 @@ A_WIDTH = 8
 A_CHANN = 128
 
 # path & base
-LABEL_PATH = '//data//linkang//bilibili//label_record_zmn_24s.json'
-FEATURE_BASE = '//data//linkang//bilibili//feature//'
-visual_model_path = '../../model_HL/mosi_pretrained/sports1m_finetuning_ucf101.model'
-audio_model_path = '../../model_HL_v2/mosi_pretrained/MINMSE_0.019'
-model_save_dir = '//data//linkang//model_HL_v3//model_bilibili_SA_2//'
+LABEL_PATH = r'/public/data0/users/hulinkang/bilibili/label_record_zmn_24s.json'
+FEATURE_BASE = r'/public/data0/users/hulinkang/bilibili/feature/'
+visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'
+audio_model_path = '../model_HL/pretrained/MINMSE_0.019'
+model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_1//'
 
 load_ckpt_model = False
 ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/STEP_24000'
@@ -92,8 +92,8 @@ def load_data(label_record, feature_base):
         logging.info('-'*20+str(vid)+'-'*20)
         # load data & label
         # label顺序：train-valid-test
-        visual_path = feature_base + vid + '//features_visual_ovr.npy'
-        audio_path = feature_base + vid + '//features_audio_ovr.npy'
+        visual_path = feature_base + vid + r'/features_visual_ovr.npy'
+        audio_path = feature_base + vid + r'/features_audio_ovr.npy'
         visual = np.load(visual_path).reshape((-1, V_NUM, V_HEIGHT, V_WIDTH, V_CHANN))
         audio = np.load(audio_path).reshape((-1, A_NUM, A_HEIGHT, A_WIDTH, A_CHANN))
         labels = np.array(label_record[vid]['label'])

@@ -34,8 +34,8 @@ L2_LAMBDA = 0.005  # weightdecay loss
 GRAD_THRESHOLD = 10.0  # gradient threshold
 MAX_F1 = 0.33
 
-GPU_NUM = 2
-BATCH_SIZE = 2
+GPU_NUM = 1
+BATCH_SIZE = 4
 SEQ_INTERVAL = 1
 
 D_MODEL = Transformer.D_MODEL

@@ -595,11 +595,8 @@ def run_training(data_train, data_test, test_mode):
                                           labels_holder: label_b,
                                           dropout_holder: 0.1,
                                           training_holder: True})
-            print(observe[1])
-            print(observe[2])
-            loss_batch = np.array(observe[1:3])
-            print(loss_batch)
-            return
+
+            loss_batch = np.array(observe[1:1+GPU_NUM])
             ob_loss.append(loss_batch)  # 卡0和卡1返回的是来自同一个batch的两部分loss，求平均
 
             # save checkpoint &  evaluate

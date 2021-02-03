@@ -546,7 +546,7 @@ def run_training(data_train, data_test, test_mode):
                 loss_name_scope = ('gpud_%d_loss' % gpu_index)
                 loss = tower_loss(loss_name_scope, logits, labels)
                 varlist = tf.trainable_variables()  # 全部训练
-                varlist = list(set(varlist) - set(varlist_visual) - set(varlist_audio))
+                # varlist = list(set(varlist) - set(varlist_visual) - set(varlist_audio))
                 grads_train = opt_train.compute_gradients(loss, varlist)
                 thresh = GRAD_THRESHOLD  # 梯度截断 防止爆炸
                 grads_train_cap = [(tf.clip_by_value(grad, -thresh, thresh), var) for grad, var in grads_train]

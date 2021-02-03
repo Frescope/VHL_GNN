@@ -25,8 +25,8 @@ from Transformer import self_attention
 PRESTEPS = 0
 MAXSTEPS = 32000
 MIN_TRAIN_STEPS = 0
-WARMUP_STEP = 3000
-LR_TRAIN = 1e-7
+WARMUP_STEP = 5000
+LR_TRAIN = 2e-7
 HIDDEN_SIZE = 128  # for lstm
 
 EVL_EPOCHS = 1  # epochs for evaluation
@@ -36,7 +36,7 @@ MAX_F1 = 0.33
 
 GPU_NUM = 2
 BATCH_SIZE = 2
-SEQ_INTERVAL = 3
+SEQ_INTERVAL = 1
 
 D_MODEL = Transformer.D_MODEL
 SEQ_LEN = Transformer.SEQ_LEN
@@ -522,7 +522,7 @@ def run_training(data_train, data_test, test_mode):
         varlist_audio = list(audio_weights.values()) + list(audio_biases.values())
         # training operations
         lr = noam_scheme(LR_TRAIN,global_step,WARMUP_STEP)
-        opt_train = tf.train.AdamOptimizer(LR_TRAIN)
+        opt_train = tf.train.AdamOptimizer(lr)
 
         # graph building
         tower_grads_train = []

@@ -36,7 +36,7 @@ MAX_F1 = 0.33
 
 GPU_NUM = 2
 BATCH_SIZE = 2
-SEQ_INTERVAL = 10
+SEQ_INTERVAL = 3
 
 D_MODEL = Transformer.D_MODEL
 SEQ_LEN = Transformer.SEQ_LEN
@@ -56,7 +56,7 @@ LABEL_PATH = r'/public/data0/users/hulinkang/bilibili/label_record_zmn_24s.json'
 FEATURE_BASE = r'/public/data0/users/hulinkang/bilibili/feature/'
 visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'
 audio_model_path = '../model_HL/pretrained/MINMSE_0.019'
-model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_2/'
+model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_0/'
 
 load_ckpt_model = False
 ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/STEP_24000'

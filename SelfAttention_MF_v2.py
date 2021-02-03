@@ -609,6 +609,7 @@ def run_training(data_train, data_test, test_mode):
                 ob_loss.clear()
                 logging.info(' Step %d: %.3f sec' % (step, duration))
                 logging.info(' Evaluate: '+str(step)+' Epoch: '+str(epoch))
+                logging.info(str(loss_array.shape)+str(type(loss_array)))
                 logging.info(' Average Loss: '+str(np.mean(loss_array))+' Min Loss: '+str(np.min(loss_array))+' Max Loss: '+str(np.max(loss_array)))
 
                 # 按顺序预测测试集中每个视频的每个分段，全部预测后在每个视频内部排序，计算指标

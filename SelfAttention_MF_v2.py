@@ -26,7 +26,7 @@ PRESTEPS = 0
 MAXSTEPS = 20000
 MIN_TRAIN_STEPS = 0
 WARMUP_STEP = 3000
-LR_TRAIN = 2e-7
+LR_TRAIN = 1e-7
 HIDDEN_SIZE = 128  # for lstm
 
 EVL_EPOCHS = 1  # epochs for evaluation

@@ -23,7 +23,7 @@ from Transformer import self_attention
 # os.environ["CUDA_VISIBLE_DEVICES"] = '0,1'
 # global paras
 PRESTEPS = 0
-MAXSTEPS = 20000
+MAXSTEPS = 32000
 MIN_TRAIN_STEPS = 0
 WARMUP_STEP = 3000
 LR_TRAIN = 1e-7
@@ -32,7 +32,7 @@ HIDDEN_SIZE = 128  # for lstm
 EVL_EPOCHS = 1  # epochs for evaluation
 L2_LAMBDA = 0.005  # weightdecay loss
 GRAD_THRESHOLD = 10.0  # gradient threshold
-MAX_F1 = 0.36
+MAX_F1 = 0.33
 
 GPU_NUM = 2
 BATCH_SIZE = 2
@@ -56,7 +56,7 @@ LABEL_PATH = r'/public/data0/users/hulinkang/bilibili/label_record_zmn_24s.json'
 FEATURE_BASE = r'/public/data0/users/hulinkang/bilibili/feature/'
 visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'
 audio_model_path = '../model_HL/pretrained/MINMSE_0.019'
-model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_2'
+model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_0/'
 
 load_ckpt_model = False
 ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/STEP_24000'

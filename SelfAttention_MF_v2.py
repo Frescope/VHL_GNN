@@ -26,7 +26,7 @@ PRESTEPS = 0
 MAXSTEPS = 32000
 MIN_TRAIN_STEPS = 0
 WARMUP_STEP = 5000
-LR_TRAIN = 2e-7
+LR_TRAIN = 1e-7
 HIDDEN_SIZE = 128  # for lstm
 
 EVL_EPOCHS = 1  # epochs for evaluation
@@ -522,7 +522,7 @@ def run_training(data_train, data_test, test_mode):
         varlist_audio = list(audio_weights.values()) + list(audio_biases.values())
         # training operations
         lr = noam_scheme(LR_TRAIN,global_step,WARMUP_STEP)
-        opt_train = tf.train.AdamOptimizer(lr)
+        opt_train = tf.train.AdamOptimizer(LR_TRAIN)
 
         # graph building
         tower_grads_train = []
@@ -579,7 +579,7 @@ def run_training(data_train, data_test, test_mode):
         # train & test preparation
         data_test_concat, test_ids = test_data_build(data_test, SEQ_LEN)
         max_test_step = math.ceil(len(data_test_concat['visual_concat']) / BATCH_SIZE / GPU_NUM)
-        train_scheme = train_scheme_build_v2(data_train,SEQ_LEN,SEQ_INTERVAL)
+        train_scheme = train_scheme_build(data_train,SEQ_LEN,SEQ_INTERVAL)
         # epoch_step = math.ceil(len(train_scheme) / BATCH_SIZE / GPU_NUM)
         epoch_step = math.ceil(len(train_scheme[0]) / (BATCH_SIZE*GPU_NUM-1))
 
@@ -587,7 +587,7 @@ def run_training(data_train, data_test, test_mode):
         ob_loss = []
         timepoint = time.time()
         for step in range(MAXSTEPS):
-            visual_b, audio_b, score_b, label_b = get_batch_train_v2(data_train, train_scheme, step,GPU_NUM,BATCH_SIZE,SEQ_LEN)
+            visual_b, audio_b, score_b, label_b = get_batch_train(data_train, train_scheme, step,GPU_NUM,BATCH_SIZE,SEQ_LEN)
             observe = sess.run([train_op] + loss_list + logits_list + [global_step, lr],
                                feed_dict={visual_holder: visual_b,
                                           audio_holder: audio_b,
@@ -643,12 +643,12 @@ def run_training(data_train, data_test, test_mode):
 
             if step % 500 == 0 and step > 0:
                 model_path = model_save_dir + 'STEP_' + str(step + PRESTEPS)
-                saver_overall.save(sess, model_path)
+                # saver_overall.save(sess, model_path)
                 logging.info('Model Saved: '+str(step + PRESTEPS))
 
             # saving final model
         model_path = model_save_dir + 'STEP_' + str(MAXSTEPS + PRESTEPS)
-        saver_overall.save(sess, model_path)
+        # saver_overall.save(sess, model_path)
         logging.info('Model Saved: '+str(MAXSTEPS + PRESTEPS))
 
     return

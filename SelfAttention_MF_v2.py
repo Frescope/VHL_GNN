@@ -606,16 +606,13 @@ def run_training(data_train, data_test, test_mode):
                 duration = time.time() - timepoint
                 timepoint = time.time()
                 loss_array = np.array(ob_loss)
+                print('ob loss: ',len(ob_loss))
+                print('loss array: ',loss_array.shape)
+                print(loss_array)
+                return
                 ob_loss.clear()
                 logging.info(' Step %d: %.3f sec' % (step, duration))
                 logging.info(' Evaluate: '+str(step)+' Epoch: '+str(epoch))
-                logging.info('\n')
-                logging.info(str(np.mean(loss_array)))
-                logging.info('\n')
-                logging.info(str(np.min(loss_array)))
-                logging.info('\n')
-                logging.info(str(np.max(loss_array)))
-                logging.info('\n')
                 logging.info(' Average Loss: '+str(np.mean(loss_array))+' Min Loss: '+str(np.min(loss_array))+' Max Loss: '+str(np.max(loss_array)))
 
                 # 按顺序预测测试集中每个视频的每个分段，全部预测后在每个视频内部排序，计算指标

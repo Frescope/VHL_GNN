@@ -595,8 +595,11 @@ def run_training(data_train, data_test, test_mode):
                                           labels_holder: label_b,
                                           dropout_holder: 0.1,
                                           training_holder: True})
+            print(observe[1])
+            print(observe[2])
             loss_batch = np.array(observe[1:3])
             print(loss_batch)
+            return
             ob_loss.append(loss_batch)  # 卡0和卡1返回的是来自同一个batch的两部分loss，求平均
 
             # save checkpoint &  evaluate
@@ -607,12 +610,6 @@ def run_training(data_train, data_test, test_mode):
                 duration = time.time() - timepoint
                 timepoint = time.time()
                 loss_array = np.array(ob_loss)
-                print('ob loss: ',len(ob_loss))
-                print(ob_loss)
-                print('\n\n\n\n')
-                print('loss array: ',loss_array.shape)
-                print(loss_array)
-                return
                 ob_loss.clear()
                 logging.info(' Step %d: %.3f sec' % (step, duration))
                 logging.info(' Evaluate: '+str(step)+' Epoch: '+str(epoch))

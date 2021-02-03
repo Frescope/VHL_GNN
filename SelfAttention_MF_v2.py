@@ -580,8 +580,8 @@ def run_training(data_train, data_test, test_mode):
         data_test_concat, test_ids = test_data_build(data_test, SEQ_LEN)
         max_test_step = math.ceil(len(data_test_concat['visual_concat']) / BATCH_SIZE / GPU_NUM)
         train_scheme = train_scheme_build(data_train,SEQ_LEN,SEQ_INTERVAL)
-        # epoch_step = math.ceil(len(train_scheme) / BATCH_SIZE / GPU_NUM)
-        epoch_step = math.ceil(len(train_scheme[0]) / (BATCH_SIZE*GPU_NUM-1))
+        epoch_step = math.ceil(len(train_scheme) / BATCH_SIZE / GPU_NUM)
+        # epoch_step = math.ceil(len(train_scheme[0]) / (BATCH_SIZE*GPU_NUM-1))
 
         # Beging training
         ob_loss = []

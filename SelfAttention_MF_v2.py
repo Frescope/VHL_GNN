@@ -36,7 +36,7 @@ MAX_F1 = 0.33
 
 GPU_NUM = 2
 BATCH_SIZE = 2
-SEQ_INTERVAL = 5
+SEQ_INTERVAL = 10
 
 D_MODEL = Transformer.D_MODEL
 SEQ_LEN = Transformer.SEQ_LEN

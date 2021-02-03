@@ -607,6 +607,8 @@ def run_training(data_train, data_test, test_mode):
                 timepoint = time.time()
                 loss_array = np.array(ob_loss)
                 print('ob loss: ',len(ob_loss))
+                print(ob_loss)
+                print('\n\n\n\n')
                 print('loss array: ',loss_array.shape)
                 print(loss_array)
                 return

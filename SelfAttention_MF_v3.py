@@ -13,7 +13,7 @@ import logging
 import Transformer
 from Transformer import self_attention
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '0,2'
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 # global paras
 PRESTEPS = 0
 MAXSTEPS = 32000
@@ -27,8 +27,8 @@ L2_LAMBDA = 0.005  # weightdecay loss
 GRAD_THRESHOLD = 10.0  # gradient threshold
 MAX_F1 = 0.3
 
-GPU_NUM = 2
-BATCH_SIZE = 2
+GPU_NUM = 1
+BATCH_SIZE = 4
 SEQ_INTERVAL = 1
 
 D_MODEL = Transformer.D_MODEL
@@ -44,16 +44,28 @@ A_HEIGHT = 8
 A_WIDTH = 8
 A_CHANN = 128
 
-# path & base
+load_ckpt_model = False
+
+# path for JD server
 LABEL_PATH = r'/public/data0/users/hulinkang/bilibili/label_record_zmn_24s.json'
 FEATURE_BASE = r'/public/data0/users/hulinkang/bilibili/feature/'
 visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'
 audio_model_path = '../model_HL/pretrained/MINMSE_0.019'
-model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_3/'
-
-load_ckpt_model = False
+model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_1/'
 ckpt_model_path = '../model_HL/SelfAttention_1/STEP_24000'
 # ckpt_model_path = '../model_HL/SelfAttention_1/MAXF1_0.304_0'
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+
+# path for USTC server
+# LABEL_PATH = '//data//linkang//bilibili//label_record_zmn_24s.json'
+# FEATURE_BASE = '//data//linkang//bilibili//feature//'
+# visual_model_path = '../../model_HL/mosi_pretrained/sports1m_finetuning_ucf101.model'
+# audio_model_path = '../../model_HL_v2/mosi_pretrained/MINMSE_0.019'
+# model_save_dir = '//data//linkang//model_HL_v3//model_bilibili_SA_3//'
+# # ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/STEP_9000'
+# ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/MAXF1_0.329_0'
+
+logging.basicConfig(level=logging.INFO)
 
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -576,13 +588,13 @@ def run_training(data_train, data_test, test_mode):
         # epoch_step = math.ceil(len(train_scheme[0]) / (BATCH_SIZE * GPU_NUM - 1))
         # 不区分正负样本
         train_scheme = train_scheme_build(data_train, SEQ_LEN, SEQ_INTERVAL)
-        epoch_step = math.ceil(len(train_scheme[0]) / (BATCH_SIZE * GPU_NUM - 1))
+        epoch_step = math.ceil(len(train_scheme) / (BATCH_SIZE * GPU_NUM - 1))
 
         # Begin training
         ob_loss = []
         timepoint = time.time()
         for step in range(MAXSTEPS):
-            visual_b, audio_b, score_b, label_b = get_batch_train_v2(data_train, train_scheme, step, GPU_NUM,
+            visual_b, audio_b, score_b, label_b = get_batch_train(data_train, train_scheme, step, GPU_NUM,
                                                                      BATCH_SIZE, SEQ_LEN)
             observe = sess.run([train_op] + loss_list + logits_list + [global_step, lr],
                                feed_dict={visual_holder: visual_b,
@@ -591,7 +603,7 @@ def run_training(data_train, data_test, test_mode):
                                           labels_holder: label_b,
                                           dropout_holder: 0.1,
                                           training_holder: True})
-            loss_batch = np.array(observe[1:3])
+            loss_batch = np.array(observe[1:1+GPU_NUM])
             ob_loss.append(loss_batch)  # 卡0和卡1返回的是来自同一个batch的两部分loss，求平均
 
             # save checkpoint &  evaluate
@@ -664,7 +676,7 @@ def main(self):
     logging.info('Sequence Interval: '+str(SEQ_INTERVAL))
     logging.info('*' * 50+'\n')
 
-    run_training(data_valid, data_valid, 0)  # for training
+    run_training(data_train, data_valid, 0)  # for training
     # run_training(data_test, data_test, 1)  # for testing
 
 

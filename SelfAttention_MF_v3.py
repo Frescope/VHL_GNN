@@ -19,7 +19,7 @@ PRESTEPS = 0
 MAXSTEPS = 32000
 MIN_TRAIN_STEPS = 0
 WARMUP_STEP = 3000
-LR_TRAIN = 2e-7
+LR_TRAIN = 2e-6
 HIDDEN_SIZE = 128  # for lstm
 
 EVL_EPOCHS = 1  # epochs for evaluation
@@ -45,25 +45,27 @@ A_WIDTH = 8
 A_CHANN = 128
 
 load_ckpt_model = False
+SERVER = 0
 
-# path for JD server
-LABEL_PATH = r'/public/data0/users/hulinkang/bilibili/label_record_zmn_24s.json'
-FEATURE_BASE = r'/public/data0/users/hulinkang/bilibili/feature/'
-visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'
-audio_model_path = '../model_HL/pretrained/MINMSE_0.019'
-model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_1/'
-ckpt_model_path = '../model_HL/SelfAttention_1/STEP_24000'
-# ckpt_model_path = '../model_HL/SelfAttention_1/MAXF1_0.304_0'
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
-
-# path for USTC server
-# LABEL_PATH = '//data//linkang//bilibili//label_record_zmn_24s.json'
-# FEATURE_BASE = '//data//linkang//bilibili//feature//'
-# visual_model_path = '../../model_HL/mosi_pretrained/sports1m_finetuning_ucf101.model'
-# audio_model_path = '../../model_HL_v2/mosi_pretrained/MINMSE_0.019'
-# model_save_dir = '//data//linkang//model_HL_v3//model_bilibili_SA_3//'
-# # ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/STEP_9000'
-# ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/MAXF1_0.329_0'
+if SERVER == 0:
+    # path for JD server
+    LABEL_PATH = r'/public/data0/users/hulinkang/bilibili/label_record_zmn_24s.json'
+    FEATURE_BASE = r'/public/data0/users/hulinkang/bilibili/feature/'
+    visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'
+    audio_model_path = '../model_HL/pretrained/MINMSE_0.019'
+    model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_2/'
+    ckpt_model_path = '../model_HL/SelfAttention_1/STEP_24000'
+    # ckpt_model_path = '../model_HL/SelfAttention_1/MAXF1_0.304_0'
+    tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+else:
+    # path for USTC server
+    LABEL_PATH = '//data//linkang//bilibili//label_record_zmn_24s.json'
+    FEATURE_BASE = '//data//linkang//bilibili//feature//'
+    visual_model_path = '../../model_HL/mosi_pretrained/sports1m_finetuning_ucf101.model'
+    audio_model_path = '../../model_HL_v2/mosi_pretrained/MINMSE_0.019'
+    model_save_dir = '//data//linkang//model_HL_v3//model_bilibili_SA_3//'
+    # ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/STEP_9000'
+    ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/MAXF1_0.329_0'
 
 logging.basicConfig(level=logging.INFO)
 
@@ -676,7 +678,7 @@ def main(self):
     logging.info('Sequence Interval: '+str(SEQ_INTERVAL))
     logging.info('*' * 50+'\n')
 
-    run_training(data_train, data_valid, 0)  # for training
+    run_training(data_train, data_train, 0)  # for training
     # run_training(data_test, data_test, 1)  # for testing
 
 

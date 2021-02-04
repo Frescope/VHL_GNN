@@ -50,7 +50,7 @@ visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'
 audio_model_path = '../model_HL/pretrained/MINMSE_0.019'
 model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_6l/'
 
-load_ckpt_model = False
+load_ckpt_model = True
 
 logging.basicConfig(level=logging.INFO)
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
@@ -545,9 +545,9 @@ def run_training(data_train, data_test, data_test_concat, test_ids, model_path, 
                 timepoint = time.time()
                 loss_array = np.array(ob_loss)
                 ob_loss.clear()
-                logging.info(' Step %d: %.3f sec' % (step, duration))
-                logging.info(' Evaluate: '+str(step)+' Epoch: '+str(epoch))
-                logging.info(' Average Loss: '+str(np.mean(loss_array))+' Min Loss: '+str(np.min(loss_array))+' Max Loss: '+str(np.max(loss_array)))
+                # logging.info(' Step %d: %.3f sec' % (step, duration))
+                # logging.info(' Evaluate: '+str(step)+' Epoch: '+str(epoch))
+                # logging.info(' Average Loss: '+str(np.mean(loss_array))+' Min Loss: '+str(np.min(loss_array))+' Max Loss: '+str(np.max(loss_array)))
 
                 # 按顺序预测测试集中每个视频的每个分段，全部预测后在每个视频内部排序，计算指标
                 pred_scores = []  # 每个batch输出的预测得分

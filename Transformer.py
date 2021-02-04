@@ -5,7 +5,7 @@ import numpy as np
 D_MODEL = 512
 D_FF = 2048
 SEQ_LEN = 25
-NUM_BLOCKS = 2
+NUM_BLOCKS = 3
 NUM_HEADS = 32
 
 def positional_encoding(inputs, scope='positional_encoding'):

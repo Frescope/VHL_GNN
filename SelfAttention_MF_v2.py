@@ -36,7 +36,7 @@ MAX_F1 = 0.33
 
 GPU_NUM = 1
 BATCH_SIZE = 4
-SEQ_INTERVAL = 1
+SEQ_INTERVAL = 3
 
 D_MODEL = Transformer.D_MODEL
 SEQ_LEN = Transformer.SEQ_LEN
@@ -667,7 +667,7 @@ def main(self):
     logging.info('Min Training Steps: '+str(MIN_TRAIN_STEPS))
     logging.info('*' * 50+'\n')
 
-    run_training(data_train, data_test, 0)  # for training
+    run_training(data_train, data_valid, 0)  # for training
     # run_training(data_train, data_test, 1)  # for testing
 
 if __name__ == "__main__":

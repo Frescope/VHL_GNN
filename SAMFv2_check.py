@@ -562,6 +562,7 @@ def run_training(data_train, data_test, data_test_concat, test_ids, model_path, 
                     for preds in logits_temp_list:
                         pred_scores.append(preds.reshape((-1)))
                 evaluation_ext(pred_scores, data_test, test_ids, SEQ_LEN)
+                return
 
     return
 

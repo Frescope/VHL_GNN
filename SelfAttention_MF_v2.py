@@ -4,9 +4,6 @@
 # 沿着train_scheme的序列列表顺序训练，所有的序列全部训练过一次作为一个epoch
 # 实验2：以固定比例在训练中使用正样本与负样本，在制作train_scheme时生成一个正样本列表与一个负样本列表
 # 训练时提取固定数量的序列，先从正样本列表中取n-1个，再从负样本列表中取1个，组成一个batch，注意step与两个列表索引之间的转换
-# 实验3：使用与训练时相同的方式进行测试，即以相同的序列间隔采集测试序列，对各个片段得到的预测结果做平均，作为测试时的最终预测
-#
-
 
 import os
 import time
@@ -56,7 +53,7 @@ LABEL_PATH = r'/public/data0/users/hulinkang/bilibili/label_record_zmn_24s.json'
 FEATURE_BASE = r'/public/data0/users/hulinkang/bilibili/feature/'
 visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'
 audio_model_path = '../model_HL/pretrained/MINMSE_0.019'
-model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_7l/'
+model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_6l/'
 
 load_ckpt_model = False
 ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/STEP_24000'
@@ -580,15 +577,15 @@ def run_training(data_train, data_test, test_mode):
         # train & test preparation
         data_test_concat, test_ids = test_data_build(data_test, SEQ_LEN)
         max_test_step = math.ceil(len(data_test_concat['visual_concat']) / BATCH_SIZE / GPU_NUM)
-        train_scheme = train_scheme_build(data_train,SEQ_LEN,SEQ_INTERVAL)
-        epoch_step = math.ceil(len(train_scheme) / BATCH_SIZE / GPU_NUM)
-        # epoch_step = math.ceil(len(train_scheme[0]) / (BATCH_SIZE*GPU_NUM-1))
+        train_scheme = train_scheme_build_v2(data_train,SEQ_LEN,SEQ_INTERVAL)
+        # epoch_step = math.ceil(len(train_scheme) / BATCH_SIZE / GPU_NUM)
+        epoch_step = math.ceil(len(train_scheme[0]) / (BATCH_SIZE*GPU_NUM-1))
 
         # Beging training
         ob_loss = []
         timepoint = time.time()
         for step in range(MAXSTEPS):
-            visual_b, audio_b, score_b, label_b = get_batch_train(data_train, train_scheme, step,GPU_NUM,BATCH_SIZE,SEQ_LEN)
+            visual_b, audio_b, score_b, label_b = get_batch_train_v2(data_train, train_scheme, step,GPU_NUM,BATCH_SIZE,SEQ_LEN)
             observe = sess.run([train_op] + loss_list + logits_list + [global_step, lr],
                                feed_dict={visual_holder: visual_b,
                                           audio_holder: audio_b,

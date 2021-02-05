@@ -56,8 +56,8 @@ audio_model_path = '../model_HL/pretrained/MINMSE_0.019'
 model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_6l/'
 
 load_ckpt_model = True
-ckpt_model_path = '../model_HL/SelfAttention_1/MAXF1_0.286_0'
-# ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/MAXF1_0.304_0'
+# ckpt_model_path = '../model_HL/SelfAttention_1/MAXF1_0.286_0'
+ckpt_model_path = '../model_HL/SelfAttention_3/STEP_30000'
 
 logging.basicConfig(level=logging.INFO)
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)

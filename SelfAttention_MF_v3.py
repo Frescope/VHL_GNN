@@ -54,8 +54,8 @@ if SERVER == 0:
     visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'
     audio_model_path = '../model_HL/pretrained/MINMSE_0.019'
     model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_3/'
-    ckpt_model_path = '../model_HL/SelfAttention_3/STEP_30000'
-    # ckpt_model_path = '../model_HL/SelfAttention_1/MAXF1_0.304_0'
+    # ckpt_model_path = '../model_HL/SelfAttention_3/STEP_30000'
+    ckpt_model_path = '../model_HL/SelfAttention_1/MAXF1_0.286_0'
     tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 else:
     # path for USTC server

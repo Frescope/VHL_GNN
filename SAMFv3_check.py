@@ -581,7 +581,7 @@ def main(self):
     for i in range(len(models_to_restore)):
         print('-' * 20, i, models_to_restore[i].split('/')[-1], '-' * 20)
         ckpt_model_path = models_to_restore[i]
-        run_training(data_train, ckpt_model_path,1)  # for testing
+        run_training(data_train, data_test, ckpt_model_path,1)  # for testing
 
 if __name__ == "__main__":
     tf.app.run()

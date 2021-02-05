@@ -44,7 +44,7 @@ A_HEIGHT = 8
 A_WIDTH = 8
 A_CHANN = 128
 
-load_ckpt_model = True
+load_ckpt_model = False
 SERVER = 0
 
 if SERVER == 0:
@@ -53,7 +53,7 @@ if SERVER == 0:
     FEATURE_BASE = r'/public/data0/users/hulinkang/bilibili/feature/'
     visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'
     audio_model_path = '../model_HL/pretrained/MINMSE_0.019'
-    model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_4/'
+    model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_0/'
     ckpt_model_path = '../model_HL/SelfAttention_3/STEP_30000'
     # ckpt_model_path = '../model_HL/SelfAttention_1/MAXF1_0.286_0'
     tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
@@ -576,7 +576,7 @@ def run_training(data_train, data_test, test_mode):
         saver_visual.restore(sess, visual_model_path)
         saver_audio.restore(sess, audio_model_path)
 
-        saver_overall = tf.train.Saver()
+        saver_overall = tf.train.Saver(max_to_keep=100)
         if load_ckpt_model:
             logging.info(' Ckpt Model Restoring: '+ckpt_model_path)
             saver_overall.restore(sess, ckpt_model_path)
@@ -595,12 +595,6 @@ def run_training(data_train, data_test, test_mode):
         # Begin training
         ob_loss = []
         timepoint = time.time()
-        for i in range(20):
-            mp = model_save_dir+'MODEL_'+str(i)
-            saver_overall.save(sess,mp)
-            logging.info(mp)
-            logging.info(str(os.listdir(model_save_dir)))
-        return
 
         for step in range(MAXSTEPS):
             visual_b, audio_b, score_b, label_b = get_batch_train(data_train, train_scheme, step, GPU_NUM,
@@ -685,8 +679,8 @@ def main(self):
     logging.info('Sequence Interval: '+str(SEQ_INTERVAL))
     logging.info('*' * 50+'\n')
 
-    # run_training(data_train, data_valid, 0)  # for training
-    run_training(data_test, data_test, 1)  # for testing
+    run_training(data_train, data_valid, 0)  # for training
+    # run_training(data_test, data_test, 1)  # for testing
 
 if __name__ == "__main__":
     tf.app.run()

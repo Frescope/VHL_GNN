@@ -571,7 +571,7 @@ def main(self):
     data_train, data_valid, data_test = load_data(label_record, FEATURE_BASE)
     print('Data loaded !')
 
-    data_test_actual = data_valid
+    data_test_actual = data_test
     data_test_concat, test_ids = test_data_build(data_test_actual, SEQ_LEN)
     models_to_restore = model_search(model_save_dir)
     for i in range(len(models_to_restore)):

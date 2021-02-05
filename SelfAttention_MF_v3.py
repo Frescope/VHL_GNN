@@ -54,7 +54,7 @@ if SERVER == 0:
     visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'
     audio_model_path = '../model_HL/pretrained/MINMSE_0.019'
     model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_3/'
-    ckpt_model_path = '../model_HL/SelfAttention_1/STEP_24000'
+    ckpt_model_path = '../model_HL/SelfAttention_3/STEP_30000'
     # ckpt_model_path = '../model_HL/SelfAttention_1/MAXF1_0.304_0'
     tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 else:
@@ -678,9 +678,8 @@ def main(self):
     logging.info('Sequence Interval: '+str(SEQ_INTERVAL))
     logging.info('*' * 50+'\n')
 
-    run_training(data_train, data_valid, 0)  # for training
-    # run_training(data_test, data_test, 1)  # for testing
-
+    # run_training(data_train, data_valid, 0)  # for training
+    run_training(data_test, data_valid, 1)  # for testing
 
 if __name__ == "__main__":
     tf.app.run()

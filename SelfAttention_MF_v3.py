@@ -679,7 +679,7 @@ def main(self):
     logging.info('*' * 50+'\n')
 
     # run_training(data_train, data_valid, 0)  # for training
-    run_training(data_test, data_valid, 1)  # for testing
+    run_training(data_test, data_test, 1)  # for testing
 
 if __name__ == "__main__":
     tf.app.run()

@@ -19,6 +19,7 @@ import Transformer
 from Transformer import self_attention
 
 SERVER = 0
+
 class Path:
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', default='',type=str)
@@ -30,6 +31,11 @@ class Path:
 hparams = Path()
 parser = hparams.parser
 hp = parser.parse_args()
+
+if SERVER == 0:
+    tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+else:
+    os.environ["CUDA_VISIBLE_DEVICES"] = hp.gpu
 
 # global paras
 PRESTEPS = 0
@@ -84,7 +90,6 @@ else:
     # ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/STEP_9000'
     ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_6l/STEP_27000'
 
-os.environ["CUDA_VISIBLE_DEVICES"] = hp.gpu
 logging.basicConfig(level=logging.INFO)
 
 class NpEncoder(json.JSONEncoder):

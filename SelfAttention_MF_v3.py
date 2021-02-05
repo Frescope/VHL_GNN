@@ -43,7 +43,7 @@ A_NUM = 6  # 一个clip的A_NUM个spectro，运算时需要并入batch，保持2
 A_HEIGHT = 8
 A_WIDTH = 8
 A_CHANN = 128
- 
+
 load_ckpt_model = False
 SERVER = 0
 
@@ -53,7 +53,7 @@ if SERVER == 0:
     FEATURE_BASE = r'/public/data0/users/hulinkang/bilibili/feature/'
     visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'
     audio_model_path = '../model_HL/pretrained/MINMSE_0.019'
-    model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_1/'
+    model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_3/'
     ckpt_model_path = '../model_HL/SelfAttention_1/STEP_24000'
     # ckpt_model_path = '../model_HL/SelfAttention_1/MAXF1_0.304_0'
     tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)

@@ -5,7 +5,7 @@ import numpy as np
 D_MODEL = 512
 D_FF = 2048
 SEQ_LEN = 25
-NUM_BLOCKS = 2
+NUM_BLOCKS = 6
 NUM_HEADS = 32
 
 def positional_encoding(inputs, scope='positional_encoding'):
@@ -85,7 +85,10 @@ def scaled_dot_product_attention(Q, K, V, key_masks,
             outputs = mask(outputs, type="future")
 
         # softmax
+        outputs = tf.zeros_like(outputs)  # attention权重全部相等
         outputs = tf.nn.softmax(outputs)
+        # outputs = tf.zeros_like(outputs)  # 没有attention输出
+        attention = outputs
 
         # dropout
         outputs = tf.layers.dropout(outputs, rate=dropout_rate, training=training)
@@ -93,7 +96,7 @@ def scaled_dot_product_attention(Q, K, V, key_masks,
         # weighted sum (context vectors)
         outputs = tf.matmul(outputs, V)  # (N, T_q, d_v)
 
-    return outputs
+    return outputs, attention
 
 def mask(inputs, key_masks=None, type=None):
     """Masks paddings on keys or queries to inputs
@@ -152,7 +155,7 @@ def multihead_attention(queries, keys, values, key_masks,
         V_ = tf.concat(tf.split(V, num_heads, axis=2), axis=0)  # (h*N, T_k, d_model/h)
 
         # Attention
-        outputs = scaled_dot_product_attention(Q_, K_, V_, key_masks, causality, dropout_rate, training)
+        outputs, attention = scaled_dot_product_attention(Q_, K_, V_, key_masks, causality, dropout_rate, training)
 
         # Restore shape
         outputs = tf.concat(tf.split(outputs, num_heads, axis=0), axis=2)  # (N, T_q, d_model)
@@ -163,7 +166,7 @@ def multihead_attention(queries, keys, values, key_masks,
         # Normalize
         outputs = ln(outputs)
 
-    return outputs
+    return outputs, attention
 
 def ff(inputs, num_units, scope="positionwise_feedforward"):
     '''position-wise feed forward net. See 3.3
@@ -200,10 +203,11 @@ def self_attention(seq_input, score, attention_weights, attention_biases, drop_o
         enc = tf.layers.dropout(enc, drop_out, training=training)
 
         # blocks
+        attention_list = []
         for i in range(NUM_BLOCKS):
             with tf.variable_scope("num_blocks_{}".format(i), reuse=tf.AUTO_REUSE):
                 # self-attention
-                enc = multihead_attention(queries=enc,
+                enc, attention = multihead_attention(queries=enc,
                                           keys=enc,
                                           values=enc,
                                           key_masks=src_masks,
@@ -211,9 +215,10 @@ def self_attention(seq_input, score, attention_weights, attention_biases, drop_o
                                           dropout_rate=drop_out,
                                           training=training,
                                           causality=False)
+                attention_list.append(attention)
                 # feed forward
                 enc = ff(enc, num_units=[D_FF, D_MODEL])
 
         logits = tf.squeeze(tf.layers.dense(enc,1))  # bc*seq_len
 
-    return logits
+    return logits, attention_list

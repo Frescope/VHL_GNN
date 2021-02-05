@@ -14,22 +14,36 @@ import json
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, mean_squared_error
 import random
 import logging
+import argparse
 import Transformer
 from Transformer import self_attention
 
-# os.environ["CUDA_VISIBLE_DEVICES"] = '0,1'
+SERVER = 0
+class Path:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--gpu', default='',type=str)
+    parser.add_argument('--dropout',default='0.1',type=float)
+    if SERVER == 0:
+        parser.add_argument('--msd', default='SelfAttention', type=str)
+    else:
+        parser.add_argument('--msd', default='model_bilibili_SA', type=str)
+hparams = Path()
+parser = hparams.parser
+hp = parser.parse_args()
+
 # global paras
 PRESTEPS = 0
-MAXSTEPS = 32000
+MAXSTEPS = 28000
 MIN_TRAIN_STEPS = 0
 WARMUP_STEP = 4000
 LR_TRAIN = 2e-7
 HIDDEN_SIZE = 128  # for lstm
+DROP_OUT = hp.dropout
 
 EVL_EPOCHS = 1  # epochs for evaluation
 L2_LAMBDA = 0.005  # weightdecay loss
 GRAD_THRESHOLD = 10.0  # gradient threshold
-MAX_F1 = 0.33
+MAX_F1 = 0.28
 
 GPU_NUM = 1
 BATCH_SIZE = 4
@@ -48,19 +62,30 @@ A_HEIGHT = 8
 A_WIDTH = 8
 A_CHANN = 128
 
-# path & base
-LABEL_PATH = r'/public/data0/users/hulinkang/bilibili/label_record_zmn_24s.json'
-FEATURE_BASE = r'/public/data0/users/hulinkang/bilibili/feature/'
-visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'
-audio_model_path = '../model_HL/pretrained/MINMSE_0.019'
-model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_6l/'
+load_ckpt_model = False
 
-load_ckpt_model = True
-ckpt_model_path = '../model_HL/SelfAttention_1/MAXF1_0.286_0'
-# ckpt_model_path = '../model_HL/SelfAttention_3/STEP_30000'
+if SERVER == 0:
+    # path for JD server
+    LABEL_PATH = r'/public/data0/users/hulinkang/bilibili/label_record_zmn_24s.json'
+    FEATURE_BASE = r'/public/data0/users/hulinkang/bilibili/feature/'
+    visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'
+    audio_model_path = '../model_HL/pretrained/MINMSE_0.019'
+    model_save_dir = r'/public/data0/users/hulinkang/model_HL/'+hp.msd+'/'
+    ckpt_model_path = '../model_HL/SelfAttention_3/STEP_30000'
+    # ckpt_model_path = '../model_HL/SelfAttention_1/MAXF1_0.286_0'
 
+else:
+    # path for USTC server
+    LABEL_PATH = '//data//linkang//bilibili//label_record_zmn_24s.json'
+    FEATURE_BASE = '//data//linkang//bilibili//feature//'
+    visual_model_path = '../../model_HL/mosi_pretrained/sports1m_finetuning_ucf101.model'
+    audio_model_path = '../../model_HL_v2/mosi_pretrained/MINMSE_0.019'
+    model_save_dir = r'/data/linkang/model_HL_v3/'+hp.msd+'/'
+    # ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/STEP_9000'
+    ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_6l/STEP_27000'
+
+os.environ["CUDA_VISIBLE_DEVICES"] = hp.gpu
 logging.basicConfig(level=logging.INFO)
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -396,10 +421,10 @@ def score_pred(visual,audio,score,visual_weights,visual_biases,audio_weights,aud
     # 对encoder来说每个gpu上输入bc*seq_len*d，即每次输入bc个序列，每个序列长seq_len，每个元素维度为d
     # 在encoder中将输入的序列映射到合适的维度
     seq_input = tf.reshape(z,shape=(BATCH_SIZE,SEQ_LEN,-1))  # bc*seq_len*196608
-    logits = self_attention(seq_input, score, attention_weights, attention_biases, drop_out, training)  # bc*seq_len
+    logits, attention_list = self_attention(seq_input, score, attention_weights, attention_biases, drop_out, training)  # bc*seq_len
     logits = tf.clip_by_value(tf.reshape(tf.sigmoid(logits), [-1, 1]), 1e-8, 0.99999999)  # (bc*seq_len,1)
 
-    return logits
+    return logits, attention_list
 
 def tower_loss(name_scope,logits,labels):
     y = tf.reshape(labels,[-1,1])
@@ -525,6 +550,7 @@ def run_training(data_train, data_test, test_mode):
         tower_grads_train = []
         logits_list = []
         loss_list = []
+        attention_list = []
         for gpu_index in range(GPU_NUM):
             with tf.device('/gpu:%d' % gpu_index):
                 visual = visual_holder[gpu_index * BATCH_SIZE:(gpu_index + 1) * BATCH_SIZE, :, :, :, :, :]
@@ -535,10 +561,10 @@ def run_training(data_train, data_test, test_mode):
                 scores = scores_holder[gpu_index * BATCH_SIZE:(gpu_index + 1) * BATCH_SIZE, :]
 
                 # predict scores
-                logits = score_pred(visual,audio,scores,weights,biases,audio_weights,audio_biases,
+                logits, atlist_one = score_pred(visual,audio,scores,weights,biases,audio_weights,audio_biases,
                                     None,None,dropout_holder,training_holder)
                 logits_list.append(logits)
-
+                attention_list += atlist_one  # 逐个拼接各个卡上的attention_list
                 # calculate loss & gradients
                 loss_name_scope = ('gpud_%d_loss' % gpu_index)
                 loss = tower_loss(loss_name_scope, logits, labels)
@@ -577,21 +603,24 @@ def run_training(data_train, data_test, test_mode):
         # train & test preparation
         data_test_concat, test_ids = test_data_build(data_test, SEQ_LEN)
         max_test_step = math.ceil(len(data_test_concat['visual_concat']) / BATCH_SIZE / GPU_NUM)
-        train_scheme = train_scheme_build_v2(data_train,SEQ_LEN,SEQ_INTERVAL)
-        # epoch_step = math.ceil(len(train_scheme) / BATCH_SIZE / GPU_NUM)
-        epoch_step = math.ceil(len(train_scheme[0]) / (BATCH_SIZE*GPU_NUM-1))
+        # 固定正负样本比例
+        # train_scheme = train_scheme_build_v2(data_train, SEQ_LEN, SEQ_INTERVAL)
+        # epoch_step = math.ceil(len(train_scheme[0]) / (BATCH_SIZE * GPU_NUM - 1))
+        # 不区分正负样本
+        train_scheme = train_scheme_build(data_train, SEQ_LEN, SEQ_INTERVAL)
+        epoch_step = math.ceil(len(train_scheme) / (BATCH_SIZE * GPU_NUM - 1))
 
         # Beging training
         ob_loss = []
         timepoint = time.time()
         for step in range(MAXSTEPS):
-            visual_b, audio_b, score_b, label_b = get_batch_train_v2(data_train, train_scheme, step,GPU_NUM,BATCH_SIZE,SEQ_LEN)
-            observe = sess.run([train_op] + loss_list + logits_list + [global_step, lr],
+            visual_b, audio_b, score_b, label_b = get_batch_train(data_train, train_scheme, step,GPU_NUM,BATCH_SIZE,SEQ_LEN)
+            observe = sess.run([train_op] + loss_list + logits_list + attention_list + [global_step, lr],
                                feed_dict={visual_holder: visual_b,
                                           audio_holder: audio_b,
                                           scores_holder: score_b,
                                           labels_holder: label_b,
-                                          dropout_holder: 0.1,
+                                          dropout_holder: DROP_OUT,
                                           training_holder: True})
 
             loss_batch = np.array(observe[1:1+GPU_NUM])
@@ -640,14 +669,14 @@ def run_training(data_train, data_test, test_mode):
                     saver_overall.save(sess, model_path)
                     logging.info('Model Saved: '+model_path+'\n')
 
-            if step % 500 == 0 and step > 0:
+            if step % 1000 == 0 and step > 0:
                 model_path = model_save_dir + 'STEP_' + str(step + PRESTEPS)
-                # saver_overall.save(sess, model_path)
+                saver_overall.save(sess, model_path)
                 logging.info('Model Saved: '+str(step + PRESTEPS))
 
             # saving final model
         model_path = model_save_dir + 'STEP_' + str(MAXSTEPS + PRESTEPS)
-        # saver_overall.save(sess, model_path)
+        saver_overall.save(sess, model_path)
         logging.info('Model Saved: '+str(MAXSTEPS + PRESTEPS))
 
     return
@@ -662,12 +691,13 @@ def main(self):
     logging.info('LR: '+str(LR_TRAIN))
     logging.info('Label: '+str(LABEL_PATH))
     logging.info('Min Training Steps: '+str(MIN_TRAIN_STEPS))
+    logging.info('Dropout Rate: '+str(DROP_OUT))
     logging.info('Sequence Length: '+str(SEQ_LEN))
     logging.info('Sequence Interval: '+str(SEQ_INTERVAL))
     logging.info('*' * 50+'\n')
 
-    # run_training(data_train, data_test, 0)  # for training
-    run_training(data_train, data_valid, 1)  # for testing
+    # run_training(data_train, data_valid, 0)  # for training
+    run_training(data_train, data_train, 1)  # for testing
 
 if __name__ == "__main__":
     tf.app.run()

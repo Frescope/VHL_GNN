@@ -9,10 +9,10 @@ import json
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, mean_squared_error
 import random
 import logging
+import argparse
 import Transformer
 from Transformer import self_attention
 
-# os.environ["CUDA_VISIBLE_DEVICES"] = '0,1'
 # global paras
 PRESTEPS = 0
 MAXSTEPS = 32000
@@ -43,17 +43,43 @@ A_HEIGHT = 8
 A_WIDTH = 8
 A_CHANN = 128
 
-# path & base
-LABEL_PATH = r'/public/data0/users/hulinkang/bilibili/label_record_zmn_24s.json'
-FEATURE_BASE = r'/public/data0/users/hulinkang/bilibili/feature/'
-visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'
-audio_model_path = '../model_HL/pretrained/MINMSE_0.019'
-model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_2/'
-
 load_ckpt_model = True
+SERVER = 1
 
+class Path:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--gpu', default='',type=str)
+    if SERVER == 0:
+        parser.add_argument('--msd', default='SelfAttention', type=str)
+    else:
+        parser.add_argument('--msd', default='model_bilibili_SA', type=str)
+
+hparams = Path()
+parser = hparams.parser
+hp = parser.parse_args()
+
+if SERVER == 0:
+    # path for JD server
+    LABEL_PATH = r'/public/data0/users/hulinkang/bilibili/label_record_zmn_24s.json'
+    FEATURE_BASE = r'/public/data0/users/hulinkang/bilibili/feature/'
+    visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'
+    audio_model_path = '../model_HL/pretrained/MINMSE_0.019'
+    model_save_dir = r'/public/data0/users/hulinkang/model_HL/'+hp.msd+'/'
+    ckpt_model_path = '../model_HL/SelfAttention_3/STEP_30000'
+    # ckpt_model_path = '../model_HL/SelfAttention_1/MAXF1_0.286_0'
+
+else:
+    # path for USTC server
+    LABEL_PATH = '//data//linkang//bilibili//label_record_zmn_24s.json'
+    FEATURE_BASE = '//data//linkang//bilibili//feature//'
+    visual_model_path = '../../model_HL/mosi_pretrained/sports1m_finetuning_ucf101.model'
+    audio_model_path = '../../model_HL_v2/mosi_pretrained/MINMSE_0.019'
+    model_save_dir = r'/data/linkang/model_HL_v3/'+hp.msd+'/'
+    # ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/STEP_9000'
+    ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_6l/STEP_27000'
+
+os.environ["CUDA_VISIBLE_DEVICES"] = hp.gpu
 logging.basicConfig(level=logging.INFO)
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -312,10 +338,10 @@ def score_pred(visual,audio,score,visual_weights,visual_biases,audio_weights,aud
     # 对encoder来说每个gpu上输入bc*seq_len*d，即每次输入bc个序列，每个序列长seq_len，每个元素维度为d
     # 在encoder中将输入的序列映射到合适的维度
     seq_input = tf.reshape(z,shape=(BATCH_SIZE,SEQ_LEN,-1))  # bc*seq_len*196608
-    logits = self_attention(seq_input, score, attention_weights, attention_biases, drop_out, training)  # bc*seq_len
+    logits,attention_list = self_attention(seq_input, score, attention_weights, attention_biases, drop_out, training)  # bc*seq_len
     logits = tf.clip_by_value(tf.reshape(tf.sigmoid(logits), [-1, 1]), 1e-8, 0.99999999)  # (bc*seq_len,1)
 
-    return logits
+    return logits,attention_list
 
 def tower_loss(name_scope,logits,labels):
     y = tf.reshape(labels,[-1,1])
@@ -470,6 +496,7 @@ def run_training(data_train, data_test, data_test_concat, test_ids, model_path, 
         tower_grads_train = []
         logits_list = []
         loss_list = []
+        attention_list = []
         for gpu_index in range(GPU_NUM):
             with tf.device('/gpu:%d' % gpu_index):
                 visual = visual_holder[gpu_index * BATCH_SIZE:(gpu_index + 1) * BATCH_SIZE, :, :, :, :, :]
@@ -480,23 +507,18 @@ def run_training(data_train, data_test, data_test_concat, test_ids, model_path, 
                 scores = scores_holder[gpu_index * BATCH_SIZE:(gpu_index + 1) * BATCH_SIZE, :]
 
                 # predict scores
-                logits = score_pred(visual,audio,scores,weights,biases,audio_weights,audio_biases,
+                logits,atlist_one = score_pred(visual,audio,scores,weights,biases,audio_weights,audio_biases,
                                     None,None,dropout_holder,training_holder)
                 logits_list.append(logits)
-
+                attention_list += atlist_one
                 # calculate loss & gradients
                 loss_name_scope = ('gpud_%d_loss' % gpu_index)
                 loss = tower_loss(loss_name_scope, logits, labels)
                 varlist = tf.trainable_variables()  # 全部训练
                 varlist = list(set(varlist) - set(varlist_visual) - set(varlist_audio))  # 只训练Self-attention参数
                 # varlist = varlist + list(biases.values()) + list(audio_biases.values())  # 加上卷积层偏置
-                grads_train = opt_train.compute_gradients(loss, varlist)
-                thresh = GRAD_THRESHOLD  # 梯度截断 防止爆炸
-                grads_train_cap = [(tf.clip_by_value(grad, -thresh, thresh), var) for grad, var in grads_train]
-                tower_grads_train.append(grads_train_cap)
                 loss_list.append(loss)
-        grads_t = average_gradients(tower_grads_train)
-        train_op = opt_train.apply_gradients(grads_t, global_step=global_step)
+
         if test_mode == 1:
             train_op = tf.no_op()
 
@@ -525,7 +547,7 @@ def run_training(data_train, data_test, data_test_concat, test_ids, model_path, 
         timepoint = time.time()
         for step in range(MAXSTEPS):
             visual_b, audio_b, score_b, label_b = get_batch_train(data_train, train_scheme, step,GPU_NUM,BATCH_SIZE,SEQ_LEN)
-            observe = sess.run([train_op] + loss_list + logits_list + [global_step, lr],
+            observe = sess.run([tf.no_op()] + loss_list + logits_list + attention_list + [global_step, lr],
                                feed_dict={visual_holder: visual_b,
                                           audio_holder: audio_b,
                                           scores_holder: score_b,
@@ -554,11 +576,12 @@ def run_training(data_train, data_test, data_test_concat, test_ids, model_path, 
                 for test_step in range(max_test_step):
                     visual_b, audio_b, score_b = get_batch_test(data_test_concat, test_step,
                                                                 GPU_NUM, BATCH_SIZE, SEQ_LEN)
-                    logits_temp_list = sess.run(logits_list, feed_dict={visual_holder: visual_b,
+                    observe = sess.run([logits_list]+attention_list, feed_dict={visual_holder: visual_b,
                                                                         audio_holder: audio_b,
                                                                         scores_holder: score_b,
                                                                         training_holder: False,
                                                                         dropout_holder: 0})
+                    logits_temp_list = observe[0]
                     for preds in logits_temp_list:
                         pred_scores.append(preds.reshape((-1)))
                 evaluation_ext(pred_scores, data_test, test_ids, SEQ_LEN)
@@ -571,9 +594,10 @@ def main(self):
     data_train, data_valid, data_test = load_data(label_record, FEATURE_BASE)
     print('Data loaded !')
 
-    data_test_actual = data_test
+    data_test_actual = data_valid
     data_test_concat, test_ids = test_data_build(data_test_actual, SEQ_LEN)
     models_to_restore = model_search(model_save_dir)
+    # models_to_restore = ['../../model_HL_v3/model_bilibili_SA_6l_2/MAXF1_0.286_0']
     for i in range(len(models_to_restore)):
         print('-' * 20, i, models_to_restore[i].split('/')[-1], '-' * 20)
         ckpt_model_path = models_to_restore[i]

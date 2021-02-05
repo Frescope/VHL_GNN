@@ -53,7 +53,7 @@ if SERVER == 0:
     FEATURE_BASE = r'/public/data0/users/hulinkang/bilibili/feature/'
     visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'
     audio_model_path = '../model_HL/pretrained/MINMSE_0.019'
-    model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_3/'
+    model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_4/'
     ckpt_model_path = '../model_HL/SelfAttention_3/STEP_30000'
     # ckpt_model_path = '../model_HL/SelfAttention_1/MAXF1_0.286_0'
     tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
@@ -595,6 +595,13 @@ def run_training(data_train, data_test, test_mode):
         # Begin training
         ob_loss = []
         timepoint = time.time()
+        for i in range(20):
+            mp = model_save_dir+'MODEL_'+str(i)
+            saver_overall.save(sess,mp)
+            logging.info(mp)
+            logging.info(str(os.listdir(model_save_dir)))
+        return
+
         for step in range(MAXSTEPS):
             visual_b, audio_b, score_b, label_b = get_batch_train(data_train, train_scheme, step, GPU_NUM,
                                                                      BATCH_SIZE, SEQ_LEN)

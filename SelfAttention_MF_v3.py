@@ -44,7 +44,7 @@ A_HEIGHT = 8
 A_WIDTH = 8
 A_CHANN = 128
 
-load_ckpt_model = False
+load_ckpt_model = True
 SERVER = 0
 
 if SERVER == 0:

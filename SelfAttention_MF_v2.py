@@ -696,8 +696,8 @@ def main(self):
     logging.info('Sequence Interval: '+str(SEQ_INTERVAL))
     logging.info('*' * 50+'\n')
 
-    # run_training(data_train, data_valid, 0)  # for training
-    run_training(data_train, data_train, 1)  # for testing
+    run_training(data_train, data_valid, 0)  # for training
+    # run_training(data_train, data_train, 1)  # for testing
 
 if __name__ == "__main__":
     tf.app.run()

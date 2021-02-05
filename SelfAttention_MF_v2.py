@@ -55,8 +55,8 @@ visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'
 audio_model_path = '../model_HL/pretrained/MINMSE_0.019'
 model_save_dir = r'/public/data0/users/hulinkang/model_HL/SelfAttention_6l/'
 
-load_ckpt_model = False
-ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/STEP_24000'
+load_ckpt_model = True
+ckpt_model_path = '../model_HL/SelfAttention_1/MAXF1_0.286_0'
 # ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/MAXF1_0.304_0'
 
 logging.basicConfig(level=logging.INFO)
@@ -666,8 +666,8 @@ def main(self):
     logging.info('Sequence Interval: '+str(SEQ_INTERVAL))
     logging.info('*' * 50+'\n')
 
-    run_training(data_train, data_test, 0)  # for training
-    # run_training(data_train, data_test, 1)  # for testing
+    # run_training(data_train, data_test, 0)  # for training
+    run_training(data_train, data_test, 1)  # for testing
 
 if __name__ == "__main__":
     tf.app.run()

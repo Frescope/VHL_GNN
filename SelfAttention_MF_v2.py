@@ -599,7 +599,7 @@ def run_training(data_train, data_test, test_mode):
         saver_visual.restore(sess, visual_model_path)
         saver_audio.restore(sess, audio_model_path)
 
-        saver_overall = tf.train.Saver()
+        saver_overall = tf.train.Saver(max_to_keep=100)
         if load_ckpt_model:
             logging.info(' Ckpt Model Restoring: '+ckpt_model_path)
             saver_overall.restore(sess, ckpt_model_path)

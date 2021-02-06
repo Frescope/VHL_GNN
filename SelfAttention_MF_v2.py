@@ -39,17 +39,17 @@ else:
 
 # global paras
 PRESTEPS = 0
-MAXSTEPS = 28000
+MAXSTEPS = 36000
 MIN_TRAIN_STEPS = 0
 WARMUP_STEP = 4000
-LR_TRAIN = 2e-7
+LR_TRAIN = 1e-7
 HIDDEN_SIZE = 128  # for lstm
 DROP_OUT = hp.dropout
 
 EVL_EPOCHS = 1  # epochs for evaluation
 L2_LAMBDA = 0.005  # weightdecay loss
 GRAD_THRESHOLD = 10.0  # gradient threshold
-MAX_F1 = 0.28
+MAX_F1 = 0.26
 
 GPU_NUM = 1
 BATCH_SIZE = 4
@@ -676,12 +676,12 @@ def run_training(data_train, data_test, test_mode):
 
             if step % 1000 == 0 and step > 0:
                 model_path = model_save_dir + 'STEP_' + str(step + PRESTEPS)
-                saver_overall.save(sess, model_path)
+                # saver_overall.save(sess, model_path)
                 logging.info('Model Saved: '+str(step + PRESTEPS))
 
             # saving final model
         model_path = model_save_dir + 'STEP_' + str(MAXSTEPS + PRESTEPS)
-        saver_overall.save(sess, model_path)
+        # saver_overall.save(sess, model_path)
         logging.info('Model Saved: '+str(MAXSTEPS + PRESTEPS))
 
     return

@@ -37,7 +37,7 @@ else:
 
 # global paras
 PRESTEPS = 0
-MAXSTEPS = 24000
+MAXSTEPS = 50000
 MIN_TRAIN_STEPS = 0
 WARMUP_STEP = 4000
 LR_TRAIN = 1e-7
@@ -594,7 +594,7 @@ def run_training(data_train, data_test, test_mode):
                     saver_overall.save(sess, model_path)
                     logging.info('Model Saved: '+model_path+'\n')
 
-            if step % 2000 == 0 and step > 0:
+            if step % 5000 == 0 and step > 0:
                 model_path = model_save_dir + 'STEP_' + str(step + PRESTEPS)
                 saver_overall.save(sess, model_path)
                 logging.info('Model Saved: '+str(step + PRESTEPS))

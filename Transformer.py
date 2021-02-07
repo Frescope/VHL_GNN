@@ -4,10 +4,10 @@ import numpy as np
 
 D_MODEL = 512
 D_FF = 2048
-SEQ_LEN = 20
+SEQ_LEN = 25
 INTERVAL = 1
-NUM_BLOCKS = 2
-NUM_HEADS = 32
+NUM_BLOCKS = 6
+NUM_HEADS = 8
 
 def positional_encoding(inputs, scope='positional_encoding'):
     E = D_MODEL

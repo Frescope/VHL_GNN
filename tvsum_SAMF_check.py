@@ -20,7 +20,7 @@ SERVER = 1
 
 class Path:
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gpu', default='0,1',type=str)
+    parser.add_argument('--gpu', default='0,2',type=str)
     parser.add_argument('--dropout',default='0.1',type=float)
     if SERVER == 0:
         parser.add_argument('--msd', default='TVSum_SelfAttention', type=str)
@@ -36,6 +36,18 @@ else:
     os.environ["CUDA_VISIBLE_DEVICES"] = hp.gpu
 
 # global paras
+PRESTEPS = 0
+MAXSTEPS = 24000
+MIN_TRAIN_STEPS = 0
+WARMUP_STEP = 4000
+LR_TRAIN = 1e-7
+DROP_OUT = hp.dropout
+
+EVL_EPOCHS = 1  # epochs for evaluation
+L2_LAMBDA = 0.005  # weightdecay loss
+GRAD_THRESHOLD = 10.0  # gradient threshold
+MAX_F1 = 0.35
+
 GPU_NUM = 1
 BATCH_SIZE = 4
 SEQ_INTERVAL = Transformer.INTERVAL
@@ -52,11 +64,11 @@ A_HEIGHT = 8
 A_WIDTH = 8
 A_CHANN = 128
 
-load_ckpt_model = False
+load_ckpt_model = True
 
 if SERVER == 0:
     # path for JD server
-    LABEL_PATH = r'/public/data0/users/hulinkang/tvsum/label_record.json'
+    LABEL_PATH = r'/public/data0/users/hulinkang/tvsum/label_record_st.json'
     INFO_PATH = r'/public/data0/users/hulinkang/tvsum/video_info.json'
     FEATURE_BASE = r'/public/data0/users/hulinkang/tvsum/feature_intermid/'
     visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'
@@ -67,7 +79,7 @@ if SERVER == 0:
 
 else:
     # path for USTC server
-    LABEL_PATH = '//data//linkang//tvsum50//label_record.json'
+    LABEL_PATH = '//data//linkang//tvsum50//label_record_st.json'
     INFO_PATH = '//data/linkang//tvsum50//video_info.json'
     FEATURE_BASE = '//data//linkang//tvsum50//feature_intermid//'
     visual_model_path = '../../model_HL/mosi_pretrained/sports1m_finetuning_ucf101.model'
@@ -156,6 +168,57 @@ def split_data(video_cat,data):
                      str(d['visual'].shape) + str(d['audio'].shape) + str(d['labels'].shape) + str(d['scores'].shape))
 
     return data_train, data_valid, data_test
+
+def train_scheme_build(data_train,seq_len,interval):
+    # 加强随机化的train_scheme，直接根据step确定当前使用哪个序列，找到对应的视频中的对应位置即可
+    # train_scheme = [(vid,seq_start,seq_label)]
+    seq_list = []
+    for vid in data_train:
+        label = data_train[vid]['labels']
+        vlength = len(label)
+        # 对每个视频遍历所有将提取的序列，根据门限确定正负样本，归入相应的列表
+        seq_start = 0
+        while seq_start + seq_len <= vlength:
+            seq_label = label[seq_start:seq_start+seq_len]
+            seq_list.append((vid,seq_start,seq_label))
+            seq_start += interval
+    random.shuffle(seq_list)
+    return seq_list
+
+def get_batch_train(data,train_scheme,step,gpu_num,bc,seq_len):
+    # 按照train-scheme制作batch，每次选择gpu_num*bc个序列返回即可
+    seq_num = len(train_scheme)  # 序列总数
+
+    # 每个step中从一个视频中提取gpu_num*bc个序列，顺序拼接后返回
+    visual = []
+    audio = []
+    score = []
+    label = []
+    for i in range(gpu_num * bc):
+        # 每次提取一个序列
+        pos = (step * gpu_num * bc + i) % seq_num  # 序列位置
+        vid = train_scheme[pos][0]
+        start = train_scheme[pos][1]
+        label_seq_orgin = train_scheme[pos][2]
+        end = start + seq_len
+        visual_seq = data[vid]['visual'][start:end]
+        audio_seq = data[vid]['audio'][start:end]
+        score_seq = data[vid]['scores'][start:end]
+        label_seq = data[vid]['labels'][start:end]
+        visual.append(visual_seq)
+        audio.append(audio_seq)
+        score.append(score_seq)
+        label.append(label_seq)
+        if np.sum(label_seq - label_seq_orgin) > 0:
+            logging.info('\n\nError!',step,pos,vid,i,label_seq,label_seq_orgin,'\n\n')
+
+    # reshape
+    visual = np.array(visual).reshape((gpu_num*bc,seq_len,V_NUM,V_HEIGHT,V_WIDTH,V_CHANN))
+    audio = np.array(audio).reshape((gpu_num*bc,seq_len,A_NUM,A_HEIGHT,A_WIDTH,A_CHANN))
+    score = np.array(score).reshape((gpu_num*bc,seq_len))
+    label = np.array(label).reshape((gpu_num*bc,seq_len))
+
+    return visual, audio, score, label
 
 def test_data_build(data_test, seq_len):
     # 按照顺序拼接所有视频的所有分段，保证不同视频的分段不会在同一个序列中出现，因此在序列水平上进行padding
@@ -288,49 +351,110 @@ def score_pred(visual,audio,score,visual_weights,visual_biases,audio_weights,aud
 
     return logits, attention_list
 
-def evaluation(pred_scores, data_test, test_ids, seq_len):
+def tower_loss(name_scope,logits,labels):
+    y = tf.reshape(labels,[-1,1])
+    # ce = -y * (tf.log(logits)) * (1-logits) ** 2.0 *0.25 - (1 - y) * tf.log(1 - logits) * (logits) ** 2.0 * 0.75
+    # loss = tf.reduce_sum(ce)
+    ce = -y * (tf.log(logits)) - (1 - y) * tf.log(1 - logits)
+    loss = tf.reduce_mean(ce)
+    return loss
+
+def average_gradients(tower_grads):
+    average_grads = []
+    for grad_and_vars in zip(*tower_grads):
+        grads = []
+        for g, _ in grad_and_vars:
+            expanded_g = tf.expand_dims(g, 0)
+            grads.append(expanded_g)
+        grad = tf.concat(grads, 0)
+        grad = tf.reduce_mean(grad, 0)
+        v = grad_and_vars[0][1]
+        grad_and_var = (grad, v)
+        average_grads.append(grad_and_var)
+    return average_grads
+
+def noam_scheme(init_lr, global_step, warmup_steps=4000.):
+    '''Noam scheme learning rate decay
+    init_lr: initial learning rate. scalar.
+    global_step: scalar.
+    warmup_steps: scalar. During warmup_steps, learning rate increases
+        until it reaches init_lr.
+    '''
+    step = tf.cast(global_step + 1, dtype=tf.float32)
+    return init_lr * warmup_steps ** 0.5 * tf.minimum(step * warmup_steps ** -1.5, step ** -0.5)
+
+def evaluation_ext(pred_scores, data_test, test_ids, seq_len):
     # 根据预测的分数和对应的标签计算aprf以及mse
     # 输入模型训练时的总bc，用于计算测试数据中填充部分的长度
+    # 查看ext_ratio
     preds_c = list(pred_scores[0])
     for i in range(1, len(pred_scores)):
         preds_c = preds_c + list(pred_scores[i])
 
-    pos = 0
-    label_pred_all = np.array(())
-    label_true_all = np.array(())
-    results = {}  # for case study
-    for vid in test_ids:
-        labels = data_test[vid]['labels'].reshape((-1,))
-        # 计算padding，提取preds中的有效预测部分
-        vlength = len(labels)
-        padlen = seq_len - vlength % seq_len
-        padlen = padlen % seq_len  # 当vlength是seq_len的整数倍时，不需要padding
-        vlength_pad = vlength + padlen
-        # 截取有效的预测部分
-        preds = preds_c[pos:pos + vlength_pad]
-        preds = np.array(preds).reshape((-1,))
-        pos += vlength_pad  # pos按照填充后的长度移动，移动到下一个视频的预测部分起点
-        preds = preds[:vlength]  # preds的有效预测长度
-        # predict
-        hlnum = int(np.sum(labels))
-        preds_list = list(preds)
-        preds_list.sort(reverse=True)
-        threshold = preds_list[hlnum]
-        if threshold * 1.0 <= preds_list[0]:
-            threshold = threshold * 1.0
-            # 分数达到threshold的1.02以上的都作为highlight，但要注意当threshold位置的值放大后可能会大于最大值，造成全部预测为0
-        labels_pred = (preds > threshold).astype(int)
-        label_true_all = np.concatenate((label_true_all, labels))
-        label_pred_all = np.concatenate((label_pred_all, labels_pred))
+    ext_ratio = 0.9
+    f1_max = 0
+    ext_max = ext_ratio
+    while ext_ratio <= 1.1:
+        pos = 0
+        label_pred_all = np.array(())
+        label_true_all = np.array(())
 
-    a = accuracy_score(label_true_all, label_pred_all)
-    p = precision_score(label_true_all, label_pred_all)
-    r = recall_score(label_true_all, label_pred_all)
-    f = f1_score(label_true_all, label_pred_all)
+        for vid in test_ids:
+            labels = data_test[vid]['labels'].reshape((-1,))
+            # 计算padding，提取preds中的有效预测部分
+            vlength = len(labels)
+            padlen = seq_len - vlength % seq_len
+            padlen = padlen % seq_len  # 当vlength是seq_len的整数倍时，不需要padding
+            vlength_pad = vlength + padlen
+            # 截取有效的预测部分
+            preds = preds_c[pos:pos + vlength_pad]
+            preds = np.array(preds).reshape((-1,))
+            pos += vlength_pad  # pos按照填充后的长度移动，移动到下一个视频的预测部分起点
+            preds = preds[:vlength]  # preds的有效预测长度
+            # predict
+            hlnum = int(np.sum(labels))
+            preds_list = list(preds)
+            preds_list.sort(reverse=True)
+            threshold = preds_list[hlnum]
+            if threshold * ext_ratio <= preds_list[0]:
+                threshold = threshold * ext_ratio
+                # 分数达到threshold的1.02以上的都作为highlight，但要注意当threshold位置的值放大后可能会大于最大值，造成全部预测为0
+            labels_pred = (preds > threshold).astype(int)
+            label_true_all = np.concatenate((label_true_all, labels))
+            label_pred_all = np.concatenate((label_pred_all, labels_pred))
 
-    return a,p,r,f
+        a = accuracy_score(label_true_all, label_pred_all)
+        p = precision_score(label_true_all, label_pred_all)
+        r = recall_score(label_true_all, label_pred_all)
+        f = f1_score(label_true_all, label_pred_all)
 
-def run_training(data_train, data_test, test_mode):
+        if f > f1_max:
+            f1_max = f
+            ext_max = ext_ratio
+        logging.info('Extend: %.2f,%.3f,%.3f,%.3f,%.3f' %(ext_ratio,a,p,r,f))
+        ext_ratio += 0.01
+    logging.info('Max Ratio: %.2f,%.3f' % (ext_max, f1_max))
+    return
+
+def model_search(model_save_dir):
+    # 找到要验证的模型名称
+    model_to_restore = []
+    for root,dirs,files in os.walk(model_save_dir):
+        for file in files:
+            if file.startswith('MINMSE'):
+                model_name = 'MINMSE_0.' + file.split('.')[1]
+                model_to_restore.append(os.path.join(root, model_name))
+            if file.startswith('MAXF1'):
+                model_name = 'MAXF1_0.' + file.split('.')[1]
+                model_to_restore.append(os.path.join(root, model_name))
+            if file.startswith('STEP'):
+                model_name = file.split('.')[0]
+                model_to_restore.append(os.path.join(root,model_name))
+    model_to_restore = list(set(model_to_restore))
+    model_to_restore.sort()
+    return model_to_restore
+
+def run_training(data_train, data_test, data_test_concat, test_ids, model_path, test_mode):
     with tf.Graph().as_default():
         global_step = tf.train.get_or_create_global_step()
         # placeholders
@@ -427,7 +551,6 @@ def run_training(data_train, data_test, test_mode):
             logging.info(' Ckpt Model Resrtored !')
 
         # train & test preparation
-        data_test_concat, test_ids = test_data_build(data_test, SEQ_LEN)
         max_test_step = math.ceil(len(data_test_concat['visual_concat']) / BATCH_SIZE / GPU_NUM)
         # 固定正负样本比例
         # train_scheme = train_scheme_build_v2(data_train, SEQ_LEN, SEQ_INTERVAL)
@@ -441,7 +564,7 @@ def run_training(data_train, data_test, test_mode):
         timepoint = time.time()
         for step in range(MAXSTEPS):
             visual_b, audio_b, score_b, label_b = get_batch_train(data_train, train_scheme, step,GPU_NUM,BATCH_SIZE,SEQ_LEN)
-            observe = sess.run([train_op] + loss_list + logits_list + attention_list + [global_step, lr],
+            observe = sess.run([tf.no_op()] + loss_list + logits_list + attention_list + [global_step, lr],
                                feed_dict={visual_holder: visual_b,
                                           audio_holder: audio_b,
                                           scores_holder: score_b,
@@ -477,34 +600,8 @@ def run_training(data_train, data_test, test_mode):
                                                                         dropout_holder: 0})
                     for preds in logits_temp_list:
                         pred_scores.append(preds.reshape((-1)))
-                a, p, r, f = evaluation(pred_scores, data_test, test_ids, SEQ_LEN)
-                logging.info('Accuracy: %.3f, Precision: %.3f, Recall: %.3f, F1: %.3f' % (a, p, r, f))
-
-                if test_mode == 1:
-                    return
-
-                # save model
-                if step > MIN_TRAIN_STEPS - PRESTEPS and f >= (max_f1 - 0.025):
-                    if f > max_f1:
-                        max_f1 = f
-                    model_path_base = model_save_dir + 'MAXF1_' + str('%.3f' % f)
-                    name_id = 0
-                    while os.path.isfile(model_path_base + '_%d.meta'%name_id):
-                        name_id += 1
-                    model_path = model_path_base + '_%d'%name_id
-                    saver_overall.save(sess, model_path)
-                    logging.info('Model Saved: '+model_path+'\n')
-
-            if step % 1000 == 0 and step > 0:
-                model_path = model_save_dir + 'STEP_' + str(step + PRESTEPS)
-                saver_overall.save(sess, model_path)
-                logging.info('Model Saved: '+str(step + PRESTEPS))
-
-            # saving final model
-        model_path = model_save_dir + 'STEP_' + str(MAXSTEPS + PRESTEPS)
-        saver_overall.save(sess, model_path)
-        logging.info('Model Saved: '+str(MAXSTEPS + PRESTEPS))
-
+                evaluation_ext(pred_scores, data_test, test_ids, SEQ_LEN)
+                return
     return
 
 def main(self):
@@ -513,18 +610,14 @@ def main(self):
     data_train, data_valid, data_test = split_data(video_cat,data)
     logging.info('Data loaded !')
 
-    logging.info('*'*20+'Settings'+'*'*20)
-    logging.info('Model Dir: '+model_save_dir)
-    logging.info('LR: '+str(LR_TRAIN))
-    logging.info('Label: '+str(LABEL_PATH))
-    logging.info('Min Training Steps: '+str(MIN_TRAIN_STEPS))
-    logging.info('Dropout Rate: '+str(DROP_OUT))
-    logging.info('Sequence Length: '+str(SEQ_LEN))
-    logging.info('Sequence Interval: '+str(SEQ_INTERVAL))
-    logging.info('*' * 50+'\n')
-
-    run_training(data_train, data_valid, 0)  # for training
-    # run_training(data_train, data_train, 1)  # for testing
+    data_test_actual = data_test
+    data_test_concat, test_ids = test_data_build(data_test_actual, SEQ_LEN)
+    models_to_restore = model_search(model_save_dir)
+    # models_to_restore = ['../../model_HL_v3/model_bilibili_SA_6l_2/MAXF1_0.286_0']
+    for i in range(len(models_to_restore)):
+        print('-' * 20, i, models_to_restore[i].split('/')[-1], '-' * 20)
+        ckpt_model_path = models_to_restore[i]
+        run_training(data_train, data_test_actual, data_test_concat, test_ids, ckpt_model_path, 1)  # for testing
 
 if __name__ == "__main__":
     tf.app.run()

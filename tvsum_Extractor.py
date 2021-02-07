@@ -71,48 +71,20 @@ def load_data(label_record, feature_base):
         labels = np.array(label_record[vid]['label'])
         scores = np.array(label_record[vid]['score'])
 
-        # split train & valid & test set
-        trindex = label_record[vid]['train_index']
-        vdindex = label_record[vid]['valid_index']
-        teindex = label_record[vid]['test_index']
-
         temp_train = {}
-        temp_train['frame'] = frame[trindex]
-        temp_train['spectro'] = spectro[trindex]
-        temp_train['smile'] = smile[trindex]
-        temp_train['labels'] = labels[trindex]
-        temp_train['scores'] = scores[trindex]
+        temp_train['frame'] = frame
+        temp_train['spectro'] = spectro
+        temp_train['smile'] = smile
+        temp_train['labels'] = labels
+        temp_train['scores'] = scores
         temp_train['hl_num'] = int(np.sum(temp_train['labels']))
         temp_train['nhl_num'] = len(temp_train['labels']) - temp_train['hl_num']
         data_train[vid] = temp_train
 
-        temp_valid = {}
-        temp_valid['frame'] = frame[vdindex]
-        temp_valid['spectro'] = spectro[vdindex]
-        temp_valid['smile'] = smile[vdindex]
-        temp_valid['labels'] = labels[vdindex]
-        temp_valid['scores'] = scores[vdindex]
-        temp_valid['hl_num'] = int(np.sum(temp_valid['labels']))
-        temp_valid['nhl_num'] = len(temp_valid['labels']) - temp_valid['hl_num']
-        data_valid[vid] = temp_valid
+        print('Data: ', temp_train['frame'].shape)
+        print('Scores: ', len(temp_train['scores']))
 
-        temp_test = {}
-        temp_test['frame'] = frame[teindex]
-        temp_test['spectro'] = spectro[teindex]
-        temp_test['smile'] = smile[teindex]
-        temp_test['labels'] = labels[teindex]
-        temp_test['scores'] = scores[teindex]
-        temp_test['hl_num'] = int(np.sum(temp_test['labels']))
-        temp_test['nhl_num'] = len(temp_test['labels']) - temp_test['hl_num']
-        data_test[vid] = temp_test
-
-        print('Data(train, valid, test): ',temp_train['frame'].shape, temp_valid['spectro'].shape, temp_test['smile'].shape)
-        print('Scores(train, valid, test): ', len(temp_train['scores']), len(temp_valid['scores']),
-            len(temp_test['scores']))
-        print('Labels(train, valid, test): ', len(temp_train['labels']), len(temp_valid['labels']),
-              len(temp_test['labels']))
-
-    return data_train, data_valid, data_test
+    return data_train
 
 def get_batch(data,steps,batch_size):
     # 在每个vid的特征中循环若干个batch

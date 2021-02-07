@@ -7,7 +7,7 @@ D_FF = 2048
 SEQ_LEN = 20
 INTERVAL = 1
 NUM_BLOCKS = 6
-NUM_HEADS = 16
+NUM_HEADS = 24
 
 def positional_encoding(inputs, scope='positional_encoding'):
     E = D_MODEL

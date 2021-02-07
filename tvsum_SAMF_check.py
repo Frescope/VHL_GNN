@@ -316,8 +316,8 @@ def evaluation(pred_scores, data_test, test_ids, seq_len):
         preds_list = list(preds)
         preds_list.sort(reverse=True)
         threshold = preds_list[hlnum]
-        if threshold * 1.02 <= preds_list[0]:
-            threshold = threshold * 1.02
+        if threshold * 1.0 <= preds_list[0]:
+            threshold = threshold * 1.0
             # 分数达到threshold的1.02以上的都作为highlight，但要注意当threshold位置的值放大后可能会大于最大值，造成全部预测为0
         labels_pred = (preds > threshold).astype(int)
         label_true_all = np.concatenate((label_true_all, labels))

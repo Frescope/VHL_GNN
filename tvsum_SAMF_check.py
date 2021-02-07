@@ -36,18 +36,6 @@ else:
     os.environ["CUDA_VISIBLE_DEVICES"] = hp.gpu
 
 # global paras
-PRESTEPS = 0
-MAXSTEPS = 24000
-MIN_TRAIN_STEPS = 0
-WARMUP_STEP = 4000
-LR_TRAIN = 1e-7
-DROP_OUT = hp.dropout
-
-EVL_EPOCHS = 1  # epochs for evaluation
-L2_LAMBDA = 0.005  # weightdecay loss
-GRAD_THRESHOLD = 10.0  # gradient threshold
-MAX_F1 = 0.35
-
 GPU_NUM = 1
 BATCH_SIZE = 4
 SEQ_INTERVAL = Transformer.INTERVAL
@@ -86,7 +74,7 @@ else:
     audio_model_path = '../../model_HL_v2/mosi_pretrained/MINMSE_0.019'
     model_save_dir = r'/data/linkang/model_HL_v3/'+hp.msd+'/'
     # ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/STEP_9000'
-    ckpt_model_path = '../../model_HL_v3/model_tvsum_SA_0/STEP_27000'
+    ckpt_model_path = '../../model_HL_v3/model_tvsum_SA/STEP_27000'
 
 logging.basicConfig(level=logging.INFO)
 
@@ -168,57 +156,6 @@ def split_data(video_cat,data):
                      str(d['visual'].shape) + str(d['audio'].shape) + str(d['labels'].shape) + str(d['scores'].shape))
 
     return data_train, data_valid, data_test
-
-def train_scheme_build(data_train,seq_len,interval):
-    # 加强随机化的train_scheme，直接根据step确定当前使用哪个序列，找到对应的视频中的对应位置即可
-    # train_scheme = [(vid,seq_start,seq_label)]
-    seq_list = []
-    for vid in data_train:
-        label = data_train[vid]['labels']
-        vlength = len(label)
-        # 对每个视频遍历所有将提取的序列，根据门限确定正负样本，归入相应的列表
-        seq_start = 0
-        while seq_start + seq_len <= vlength:
-            seq_label = label[seq_start:seq_start+seq_len]
-            seq_list.append((vid,seq_start,seq_label))
-            seq_start += interval
-    random.shuffle(seq_list)
-    return seq_list
-
-def get_batch_train(data,train_scheme,step,gpu_num,bc,seq_len):
-    # 按照train-scheme制作batch，每次选择gpu_num*bc个序列返回即可
-    seq_num = len(train_scheme)  # 序列总数
-
-    # 每个step中从一个视频中提取gpu_num*bc个序列，顺序拼接后返回
-    visual = []
-    audio = []
-    score = []
-    label = []
-    for i in range(gpu_num * bc):
-        # 每次提取一个序列
-        pos = (step * gpu_num * bc + i) % seq_num  # 序列位置
-        vid = train_scheme[pos][0]
-        start = train_scheme[pos][1]
-        label_seq_orgin = train_scheme[pos][2]
-        end = start + seq_len
-        visual_seq = data[vid]['visual'][start:end]
-        audio_seq = data[vid]['audio'][start:end]
-        score_seq = data[vid]['scores'][start:end]
-        label_seq = data[vid]['labels'][start:end]
-        visual.append(visual_seq)
-        audio.append(audio_seq)
-        score.append(score_seq)
-        label.append(label_seq)
-        if np.sum(label_seq - label_seq_orgin) > 0:
-            logging.info('\n\nError!',step,pos,vid,i,label_seq,label_seq_orgin,'\n\n')
-
-    # reshape
-    visual = np.array(visual).reshape((gpu_num*bc,seq_len,V_NUM,V_HEIGHT,V_WIDTH,V_CHANN))
-    audio = np.array(audio).reshape((gpu_num*bc,seq_len,A_NUM,A_HEIGHT,A_WIDTH,A_CHANN))
-    score = np.array(score).reshape((gpu_num*bc,seq_len))
-    label = np.array(label).reshape((gpu_num*bc,seq_len))
-
-    return visual, audio, score, label
 
 def test_data_build(data_test, seq_len):
     # 按照顺序拼接所有视频的所有分段，保证不同视频的分段不会在同一个序列中出现，因此在序列水平上进行padding
@@ -351,38 +288,6 @@ def score_pred(visual,audio,score,visual_weights,visual_biases,audio_weights,aud
 
     return logits, attention_list
 
-def tower_loss(name_scope,logits,labels):
-    y = tf.reshape(labels,[-1,1])
-    # ce = -y * (tf.log(logits)) * (1-logits) ** 2.0 *0.25 - (1 - y) * tf.log(1 - logits) * (logits) ** 2.0 * 0.75
-    # loss = tf.reduce_sum(ce)
-    ce = -y * (tf.log(logits)) - (1 - y) * tf.log(1 - logits)
-    loss = tf.reduce_mean(ce)
-    return loss
-
-def average_gradients(tower_grads):
-    average_grads = []
-    for grad_and_vars in zip(*tower_grads):
-        grads = []
-        for g, _ in grad_and_vars:
-            expanded_g = tf.expand_dims(g, 0)
-            grads.append(expanded_g)
-        grad = tf.concat(grads, 0)
-        grad = tf.reduce_mean(grad, 0)
-        v = grad_and_vars[0][1]
-        grad_and_var = (grad, v)
-        average_grads.append(grad_and_var)
-    return average_grads
-
-def noam_scheme(init_lr, global_step, warmup_steps=4000.):
-    '''Noam scheme learning rate decay
-    init_lr: initial learning rate. scalar.
-    global_step: scalar.
-    warmup_steps: scalar. During warmup_steps, learning rate increases
-        until it reaches init_lr.
-    '''
-    step = tf.cast(global_step + 1, dtype=tf.float32)
-    return init_lr * warmup_steps ** 0.5 * tf.minimum(step * warmup_steps ** -1.5, step ** -0.5)
-
 def evaluation(pred_scores, data_test, test_ids, seq_len):
     # 根据预测的分数和对应的标签计算aprf以及mse
     # 输入模型训练时的总bc，用于计算测试数据中填充部分的长度
@@ -426,10 +331,6 @@ def evaluation(pred_scores, data_test, test_ids, seq_len):
     return a,p,r,f
 
 def run_training(data_train, data_test, test_mode):
-    if not os.path.exists(model_save_dir):
-        os.makedirs(model_save_dir)
-    max_f1 = MAX_F1
-
     with tf.Graph().as_default():
         global_step = tf.train.get_or_create_global_step()
         # placeholders
@@ -594,7 +495,7 @@ def run_training(data_train, data_test, test_mode):
                     saver_overall.save(sess, model_path)
                     logging.info('Model Saved: '+model_path+'\n')
 
-            if step % 2000 == 0 and step > 0:
+            if step % 1000 == 0 and step > 0:
                 model_path = model_save_dir + 'STEP_' + str(step + PRESTEPS)
                 saver_overall.save(sess, model_path)
                 logging.info('Model Saved: '+str(step + PRESTEPS))

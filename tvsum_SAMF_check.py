@@ -68,7 +68,7 @@ load_ckpt_model = True
 
 if SERVER == 0:
     # path for JD server
-    LABEL_PATH = r'/public/data0/users/hulinkang/tvsum/label_record.json'
+    LABEL_PATH = r'/public/data0/users/hulinkang/tvsum/label_record_ext.json'
     INFO_PATH = r'/public/data0/users/hulinkang/tvsum/video_info.json'
     FEATURE_BASE = r'/public/data0/users/hulinkang/tvsum/feature_intermid/'
     visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'

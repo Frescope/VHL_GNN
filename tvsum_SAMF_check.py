@@ -546,8 +546,8 @@ def run_training(data_train, data_test, data_test_concat, test_ids, model_path, 
 
         saver_overall = tf.train.Saver(max_to_keep=100)
         if load_ckpt_model:
-            logging.info(' Ckpt Model Restoring: '+ckpt_model_path)
-            saver_overall.restore(sess, ckpt_model_path)
+            logging.info(' Ckpt Model Restoring: ' + model_path)
+            saver_overall.restore(sess, model_path)
             logging.info(' Ckpt Model Resrtored !')
 
         # train & test preparation

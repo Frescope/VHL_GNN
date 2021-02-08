@@ -68,7 +68,7 @@ load_ckpt_model = True
 
 if SERVER == 0:
     # path for JD server
-    LABEL_PATH = r'/public/data0/users/hulinkang/tvsum/label_record_ext.json'
+    LABEL_PATH = r'/public/data0/users/hulinkang/tvsum/label_record_st.json'
     INFO_PATH = r'/public/data0/users/hulinkang/tvsum/video_info.json'
     FEATURE_BASE = r'/public/data0/users/hulinkang/tvsum/feature_intermid/'
     visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'
@@ -391,7 +391,7 @@ def evaluation_ext(pred_scores, data_test, test_ids, seq_len):
     for i in range(1, len(pred_scores)):
         preds_c = preds_c + list(pred_scores[i])
 
-    ext_ratio = 0.9
+    ext_ratio = 0.85
     f1_max = 0
     ext_max = ext_ratio
     while ext_ratio <= 1.1:
@@ -419,7 +419,10 @@ def evaluation_ext(pred_scores, data_test, test_ids, seq_len):
             if threshold * ext_ratio <= preds_list[0]:
                 threshold = threshold * ext_ratio
                 # 分数达到threshold的1.02以上的都作为highlight，但要注意当threshold位置的值放大后可能会大于最大值，造成全部预测为0
-            labels_pred = (preds > threshold).astype(int)
+            labels_pred = np.zeros_like(preds)
+            for i in range(len(labels_pred)):
+                if preds[i] >= threshold and np.sum(labels_pred) < hlnum:
+                    labels_pred[i] = 1
             label_true_all = np.concatenate((label_true_all, labels))
             label_pred_all = np.concatenate((label_pred_all, labels_pred))
 
@@ -618,6 +621,6 @@ def main(self):
         print('-' * 20, i, models_to_restore[i].split('/')[-1], '-' * 20)
         ckpt_model_path = models_to_restore[i]
         run_training(data_train, data_test_actual, data_test_concat, test_ids, ckpt_model_path, 1)  # for testing
-
+    logging.info(LABEL_PATH)
 if __name__ == "__main__":
     tf.app.run()

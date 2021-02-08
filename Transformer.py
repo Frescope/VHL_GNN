@@ -4,7 +4,7 @@ import numpy as np
 
 D_MODEL = 512
 D_FF = 2048
-SEQ_LEN = 25
+SEQ_LEN = 15
 INTERVAL = 1
 NUM_BLOCKS = 3
 NUM_HEADS = 32

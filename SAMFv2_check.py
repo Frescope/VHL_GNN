@@ -44,11 +44,11 @@ A_WIDTH = 8
 A_CHANN = 128
 
 load_ckpt_model = True
-SERVER = 0
+SERVER = 1
 
 class Path:
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gpu', default='',type=str)
+    parser.add_argument('--gpu', default='1,2',type=str)
     if SERVER == 0:
         parser.add_argument('--msd', default='SelfAttention', type=str)
     else:
@@ -70,6 +70,7 @@ if SERVER == 0:
 
 else:
     # path for USTC server
+
     LABEL_PATH = '//data//linkang//bilibili//label_record_zmn_24s.json'
     FEATURE_BASE = '//data//linkang//bilibili//feature//'
     visual_model_path = '../../model_HL/mosi_pretrained/sports1m_finetuning_ucf101.model'
@@ -78,7 +79,11 @@ else:
     # ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_2/STEP_9000'
     ckpt_model_path = '../../model_HL_v3/model_bilibili_SA_6l/STEP_27000'
 
-os.environ["CUDA_VISIBLE_DEVICES"] = hp.gpu
+if SERVER == 0:
+    tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+else:
+    os.environ["CUDA_VISIBLE_DEVICES"] = hp.gpu
+
 logging.basicConfig(level=logging.INFO)
 
 class NpEncoder(json.JSONEncoder):
@@ -383,10 +388,10 @@ def evaluation_ext(pred_scores, data_test, test_ids, seq_len):
     for i in range(1, len(pred_scores)):
         preds_c = preds_c + list(pred_scores[i])
 
-    ext_ratio = 0.9
+    ext_ratio = 0.85
     f1_max = 0
     ext_max = ext_ratio  
-    while ext_ratio <= 1.1:
+    while ext_ratio <= 1.10:
         pos = 0
         label_pred_all = np.array(())
         label_true_all = np.array(())
@@ -411,7 +416,10 @@ def evaluation_ext(pred_scores, data_test, test_ids, seq_len):
             if threshold * ext_ratio <= preds_list[0]:
                 threshold = threshold * ext_ratio
                 # 分数达到threshold的1.02以上的都作为highlight，但要注意当threshold位置的值放大后可能会大于最大值，造成全部预测为0
-            labels_pred = (preds > threshold).astype(int)
+            labels_pred = np.zeros_like(preds)
+            for i in range(len(labels_pred)):
+                if preds[i] >= threshold and np.sum(labels_pred) < hlnum:
+                    labels_pred[i] = 1
             label_true_all = np.concatenate((label_true_all, labels))
             label_pred_all = np.concatenate((label_pred_all, labels_pred))
 
@@ -419,11 +427,13 @@ def evaluation_ext(pred_scores, data_test, test_ids, seq_len):
         p = precision_score(label_true_all, label_pred_all)
         r = recall_score(label_true_all, label_pred_all)
         f = f1_score(label_true_all, label_pred_all)
+        pred_hlnum = np.sum(label_pred_all)
+        true_hlnum = np.sum(label_true_all)
 
         if f > f1_max:
             f1_max = f
             ext_max = ext_ratio
-        logging.info('Extend: %.2f,%.3f,%.3f,%.3f,%.3f' %(ext_ratio,a,p,r,f))
+        logging.info('Extend: %.2f,%.3f,%.3f,%.3f,%.3f,%d,%d' %(ext_ratio,a,p,r,f,pred_hlnum,true_hlnum))
         ext_ratio += 0.01
     logging.info('Max Ratio: %.2f,%.3f' % (ext_max, f1_max))
     return 
@@ -597,7 +607,7 @@ def main(self):
     data_test_actual = data_test
     data_test_concat, test_ids = test_data_build(data_test_actual, SEQ_LEN)
     models_to_restore = model_search(model_save_dir)
-    # models_to_restore = ['../../model_HL_v3/model_bilibili_SA_6l_2/MAXF1_0.286_0']
+    models_to_restore = ['/data/linkang/model_HL_v3/model_bilibili_SA/MAXF1_0.263_1']
     for i in range(len(models_to_restore)):
         print('-' * 20, i, models_to_restore[i].split('/')[-1], '-' * 20)
         ckpt_model_path = models_to_restore[i]

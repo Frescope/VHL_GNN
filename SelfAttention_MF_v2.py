@@ -18,12 +18,12 @@ import argparse
 import Transformer
 from Transformer import self_attention
 
-SERVER = 0
+SERVER = 1
 
 class Path:
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gpu', default='',type=str)
-    parser.add_argument('--dropout',default='0.1',type=float)
+    parser.add_argument('--gpu', default='1,2',type=str)
+    parser.add_argument('--dropout',default='0.25',type=float)
     if SERVER == 0:
         parser.add_argument('--msd', default='SelfAttention', type=str)
     else:
@@ -39,10 +39,10 @@ else:
 
 # global paras
 PRESTEPS = 0
-MAXSTEPS = 36000
+MAXSTEPS = 24000
 MIN_TRAIN_STEPS = 0
 WARMUP_STEP = 4000
-LR_TRAIN = 1e-7
+LR_TRAIN = 1e-6
 HIDDEN_SIZE = 128  # for lstm
 DROP_OUT = hp.dropout
 
@@ -491,10 +491,14 @@ def evaluation(pred_scores, data_test, test_ids, seq_len):
         preds_list = list(preds)
         preds_list.sort(reverse=True)
         threshold = preds_list[hlnum]
-        if threshold * 1.02 <= preds_list[0]:
-            threshold = threshold * 1.02
+        if threshold * 1.00 <= preds_list[0]:
+            threshold = threshold * 1.00
             # 分数达到threshold的1.02以上的都作为highlight，但要注意当threshold位置的值放大后可能会大于最大值，造成全部预测为0
-        labels_pred = (preds > threshold).astype(int)
+        # labels_pred = (preds >= threshold).astype(int)
+        labels_pred = np.zeros_like(preds)
+        for i in range(len(labels_pred)):
+            if preds[i] >= threshold and np.sum(labels_pred) < hlnum:
+                labels_pred[i] = 1
         label_true_all = np.concatenate((label_true_all, labels))
         label_pred_all = np.concatenate((label_pred_all, labels_pred))
 

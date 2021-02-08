@@ -68,7 +68,7 @@ load_ckpt_model = False
 
 if SERVER == 0:
     # path for JD server
-    LABEL_PATH = r'/public/data0/users/hulinkang/tvsum/label_record.json'
+    LABEL_PATH = r'/public/data0/users/hulinkang/tvsum/label_record_st.json'
     INFO_PATH = r'/public/data0/users/hulinkang/tvsum/video_info.json'
     FEATURE_BASE = r'/public/data0/users/hulinkang/tvsum/feature_intermid/'
     visual_model_path = '../model_HL/pretrained/sports1m_finetuning_ucf101.model'
@@ -79,7 +79,7 @@ if SERVER == 0:
 
 else:
     # path for USTC server
-    LABEL_PATH = '//data//linkang//tvsum50//label_record.json'
+    LABEL_PATH = '//data//linkang//tvsum50//label_record_st.json'
     INFO_PATH = '//data/linkang//tvsum50//video_info.json'
     FEATURE_BASE = '//data//linkang//tvsum50//feature_intermid//'
     visual_model_path = '../../model_HL/mosi_pretrained/sports1m_finetuning_ucf101.model'
@@ -411,10 +411,13 @@ def evaluation(pred_scores, data_test, test_ids, seq_len):
         preds_list = list(preds)
         preds_list.sort(reverse=True)
         threshold = preds_list[hlnum]
-        if threshold * 1.02 <= preds_list[0]:
-            threshold = threshold * 1.02
+        if threshold * 1.00 <= preds_list[0]:
+            threshold = threshold * 1.00
             # 分数达到threshold的1.02以上的都作为highlight，但要注意当threshold位置的值放大后可能会大于最大值，造成全部预测为0
-        labels_pred = (preds > threshold).astype(int)
+        labels_pred = np.zeros_like(preds)
+        for i in range(len(labels_pred)):
+            if preds[i] >= threshold and np.sum(labels_pred) < hlnum:
+                labels_pred[i] = 1
         label_true_all = np.concatenate((label_true_all, labels))
         label_pred_all = np.concatenate((label_pred_all, labels_pred))
 

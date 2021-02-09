@@ -391,10 +391,10 @@ def evaluation_ext(pred_scores, data_test, test_ids, seq_len):
     for i in range(1, len(pred_scores)):
         preds_c = preds_c + list(pred_scores[i])
 
-    ext_ratio = 0.85
+    ext_ratio = 1.00
     f1_max = 0
     ext_max = ext_ratio
-    while ext_ratio <= 1.1:
+    while ext_ratio <= 1.00:
         pos = 0
         label_pred_all = np.array(())
         label_true_all = np.array(())
@@ -613,7 +613,7 @@ def main(self):
     data_train, data_valid, data_test = split_data(video_cat,data)
     logging.info('Data loaded !')
 
-    data_test_actual = data_train
+    data_test_actual = data_test
     data_test_concat, test_ids = test_data_build(data_test_actual, SEQ_LEN)
     models_to_restore = model_search(model_save_dir)
     # models_to_restore = ['../../model_HL_v3/model_bilibili_SA_6l_2/MAXF1_0.286_0']

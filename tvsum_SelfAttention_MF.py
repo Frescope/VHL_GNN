@@ -46,7 +46,7 @@ DROP_OUT = hp.dropout
 EVL_EPOCHS = 1  # epochs for evaluation
 L2_LAMBDA = 0.005  # weightdecay loss
 GRAD_THRESHOLD = 10.0  # gradient threshold
-MAX_F1 = 0.35
+MAX_F1 = 0.3
 
 GPU_NUM = 1
 BATCH_SIZE = 4

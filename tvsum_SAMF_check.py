@@ -613,7 +613,7 @@ def main(self):
     data_train, data_valid, data_test = split_data(video_cat,data)
     logging.info('Data loaded !')
 
-    data_test_actual = data_test
+    data_test_actual = data_train
     data_test_concat, test_ids = test_data_build(data_test_actual, SEQ_LEN)
     models_to_restore = model_search(model_save_dir)
     # models_to_restore = ['../../model_HL_v3/model_bilibili_SA_6l_2/MAXF1_0.286_0']

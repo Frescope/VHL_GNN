@@ -23,7 +23,7 @@ SERVER = 0
 class Path:
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', default='1,2',type=str)
-    parser.add_argument('--dropout',default='0.15',type=float)
+    parser.add_argument('--dropout',default='0.25',type=float)
     if SERVER == 0:
         parser.add_argument('--msd', default='SelfAttention', type=str)
     else:
@@ -44,8 +44,7 @@ PRESTEPS = 0
 WARMUP_STEP = 4000
 MAXSTEPS = 30000
 PHASES_STEPS = [10000]
-PHASES_LR = [3e-7,1e-7]
-HIDDEN_SIZE = 128  # for lstm
+PHASES_LR = [2e-7,1e-7]
 DROP_OUT = hp.dropout
 
 EVL_EPOCHS = 1  # epochs for evaluation

@@ -4,10 +4,10 @@ import numpy as np
 
 D_MODEL = 512
 D_FF = 2048
-SEQ_LEN = 5
+SEQ_LEN = 10
 INTERVAL = 1
 NUM_BLOCKS = 2
-NUM_HEADS = 8
+NUM_HEADS = 32
 
 def positional_encoding(inputs, scope='positional_encoding'):
     E = D_MODEL
@@ -159,7 +159,9 @@ def multihead_attention(queries, keys, values, key_masks,
         outputs, attention = scaled_dot_product_attention(Q_, K_, V_, key_masks, causality, dropout_rate, training)
 
         # Restore shape
-        outputs = tf.concat(tf.split(outputs, num_heads, axis=0), axis=2)  # (N, T_q, d_model)
+        outputs = tf.layers.dropout(
+            tf.concat(tf.split(outputs, num_heads, axis=0), axis=2) , dropout_rate, training=training) # (N, T_q, d_model)
+        # outputs = tf.concat(tf.split(outputs, num_heads, axis=0), axis=2)  # (N, T_q, d_model)
 
         # Residual connection
         outputs += queries
@@ -169,7 +171,7 @@ def multihead_attention(queries, keys, values, key_masks,
 
     return outputs, attention
 
-def ff(inputs, num_units, scope="positionwise_feedforward"):
+def ff(inputs, num_units, dropout_rate, scope="positionwise_feedforward"):
     '''position-wise feed forward net. See 3.3
     inputs: A 3d tensor with shape of [N, T, C].
     num_units: A list of two integers.
@@ -182,7 +184,8 @@ def ff(inputs, num_units, scope="positionwise_feedforward"):
         outputs = tf.layers.dense(inputs, num_units[0], activation=tf.nn.relu)
 
         # Outer layer
-        outputs = tf.layers.dense(outputs, num_units[1])
+        outputs = tf.layers.dropout(tf.layers.dense(outputs, num_units[1]), dropout_rate)
+        # outputs = tf.layers.dense(outputs, num_units[1])
 
         # Residual connection
         outputs += inputs
@@ -192,7 +195,7 @@ def ff(inputs, num_units, scope="positionwise_feedforward"):
 
     return outputs
 
-def self_attention(seq_input, score, attention_weights, attention_biases, drop_out, training=True):
+def self_attention(seq_input, score, drop_out, training=True):
     # input: seq_input(bc*seq_len*d) score(bc*seq_len)
     # return: logits(bc,seq_len)
     with tf.variable_scope('self-attetion', reuse=tf.AUTO_REUSE):
@@ -218,7 +221,7 @@ def self_attention(seq_input, score, attention_weights, attention_biases, drop_o
                                           causality=False)
                 attention_list.append(attention)
                 # feed forward
-                enc = ff(enc, num_units=[D_FF, D_MODEL])
+                enc = ff(enc, num_units=[D_FF, D_MODEL], dropout_rate=drop_out)
 
         logits = tf.squeeze(tf.layers.dense(enc,1))  # bc*seq_len
 

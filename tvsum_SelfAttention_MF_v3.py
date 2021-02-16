@@ -40,17 +40,17 @@ else:
 
 # global paras
 PRESTEPS = 0
-MAXSTEPS = 60000
-PHASES_STEPS = [20000]
-PHASES_LR = [1e-6,1e-7]
+MAXSTEPS = 30000
+PHASES_STEPS = [10000]
+PHASES_LR = [1e-6,2e-7]
 WARMUP_STEP = 35000
-LR_TRAIN = 1e-7
+LR_TRAIN = 2e-7
 DROP_OUT = hp.dropout
 
 EVL_EPOCHS = 1  # epochs for evaluation
 L2_LAMBDA = 0.005  # weightdecay loss
 GRAD_THRESHOLD = 10.0  # gradient threshold
-MAX_F1 = 0.3
+MAX_F1 = 0.6
 
 GPU_NUM = 1
 BATCH_SIZE = 1
@@ -90,7 +90,7 @@ else:
     audio_model_path = '../../model_HL_v2/mosi_pretrained/MINMSE_0.019'
     model_save_dir = r'/data/linkang/model_HL_v3/'+hp.msd+'/'
     # ckpt_model_path = '../../model_HL_v3/model_tvsum_SA/STEP_5000'
-    ckpt_model_path = '../../model_HL_v3/model_tvsum_SA_0/S20376-E24-L0.010669-F0.512'
+    ckpt_model_path = '../../model_HL_v3/model_tvsum_SA_0/MAXF1_0.384_0'
 
 logging.basicConfig(level=logging.INFO)
 
@@ -180,7 +180,7 @@ def load_data_old(label_record, feature_base):
     data_valid = {}
     data_test = {}
     for vid in vids:
-        logging.info('-'*20+str(vid)+'-'*20)
+        # logging.info('-'*20+str(vid)+'-'*20)
         # load data & label
         visual_path = feature_base + vid + r'/features_visual_ovr.npy'
         audio_path = feature_base + vid + r'/features_audio_ovr.npy'
@@ -190,20 +190,13 @@ def load_data_old(label_record, feature_base):
         scores = np.array(label_record[vid]['score'])
 
         # split train & valid & test set
-        trindex = np.array(label_record[vid]['train_index'])
-        vdindex = np.array(label_record[vid]['valid_index'])
-        teindex = np.array(label_record[vid]['test_index'])
+        trindex = label_record[vid]['train_index']
+        vdindex = label_record[vid]['valid_index']
+        teindex = label_record[vid]['test_index']
 
         temp_train = {}
-        temp_train['visual'] = visual[np.maximum(trindex-2, 0)]
-        for i in np.arange(-1, 3):
-            temp_train['visual'] = np.concatenate((temp_train['visual'],visual[np.minimum(trindex+i, len(visual)-1)]),1)
-        temp_train['audio'] = audio[np.maximum(trindex - 2, 0)]
-        for i in np.arange(-1, 3):
-            temp_train['audio'] = np.concatenate((temp_train['audio'],
-                                                  audio[np.minimum(trindex + i, len(visual) - 1)]),
-                                              1)
-
+        temp_train['visual'] = visual[trindex]
+        temp_train['audio'] = audio[trindex]
         temp_train['labels'] = labels[trindex]
         temp_train['scores'] = scores[trindex]
         temp_train['hl_num'] = int(np.sum(temp_train['labels']))
@@ -211,16 +204,8 @@ def load_data_old(label_record, feature_base):
         data_train[vid] = temp_train
 
         temp_valid = {}
-        temp_valid['visual'] = visual[np.maximum(vdindex-2, 0)]
-        for i in np.arange(-1, 3):
-            temp_valid['visual'] = np.concatenate((temp_valid['visual'],
-                                                   visual[np.minimum(vdindex+i, len(visual)-1)]),1)
-        temp_valid['audio'] = audio[np.maximum(vdindex - 2, 0)]
-        for i in np.arange(-1, 3):
-            temp_valid['audio'] = np.concatenate((temp_valid['audio'],
-                                                  audio[np.minimum(vdindex + i, len(visual) - 1)]),
-                                              1)
-
+        temp_valid['visual'] = visual[vdindex]
+        temp_valid['audio'] = audio[vdindex]
         temp_valid['labels'] = labels[vdindex]
         temp_valid['scores'] = scores[vdindex]
         temp_valid['hl_num'] = int(np.sum(temp_valid['labels']))
@@ -228,30 +213,20 @@ def load_data_old(label_record, feature_base):
         data_valid[vid] = temp_valid
 
         temp_test = {}
-        #temp_test['visual'] = visual[teindex]
-        #temp_test['audio'] = audio[teindex]
-
-        temp_test['visual'] = visual[np.maximum(teindex-2, 0)]
-        for i in np.arange(-1, 3):
-            temp_test['visual'] = np.concatenate((temp_test['visual'],
-                                                   visual[np.minimum(teindex+i, len(visual)-1)]),1)
-        temp_test['audio'] = audio[np.maximum(teindex - 2, 0)]
-        for i in np.arange(-1, 3):
-            temp_test['audio'] = np.concatenate((temp_test['audio'],
-                                                  audio[np.minimum(teindex + i, len(visual) - 1)]),
-                                              1)
+        temp_test['visual'] = visual[teindex]
+        temp_test['audio'] = audio[teindex]
         temp_test['labels'] = labels[teindex]
         temp_test['scores'] = scores[teindex]
         temp_test['hl_num'] = int(np.sum(temp_test['labels']))
         temp_test['nhl_num'] = len(temp_test['labels']) - temp_test['hl_num']
         data_test[vid] = temp_test
 
-        logging.info('Data(train, valid, test): '+
-                     str(temp_train['visual'].shape)+str(temp_valid['audio'].shape)+str(temp_test['audio'].shape))
-        logging.info('Scores(train, valid, test): '+
-                     str(len(temp_train['scores']))+str(len(temp_valid['scores']))+str(len(temp_test['scores'])))
-        logging.info('Labels(train, valid, test): '+
-                     str(len(temp_train['labels']))+str(len(temp_valid['labels']))+str(len(temp_test['labels'])))
+        # logging.info('Data(train, valid, test): '+
+        #              str(temp_train['visual'].shape)+str(temp_valid['audio'].shape)+str(temp_test['audio'].shape))
+        # logging.info('Scores(train, valid, test): '+
+        #              str(len(temp_train['scores']))+str(len(temp_valid['scores']))+str(len(temp_test['scores'])))
+        # logging.info('Labels(train, valid, test): '+
+        #              str(len(temp_train['labels']))+str(len(temp_valid['labels']))+str(len(temp_test['labels'])))
 
     return data_train, data_valid, data_test
 
@@ -283,17 +258,12 @@ def get_batch_train(data,train_scheme,step,gpu_num,bc,seq_len):
     for i in range(gpu_num * bc):
         # 每次提取一个序列
         pos = (step * gpu_num * bc + i) % seq_num  # 序列位置
-
         vid = train_scheme[pos][0]
         start = train_scheme[pos][1]
         label_seq_orgin = train_scheme[pos][2]
         end = start + seq_len
-
         visual_seq = data[vid]['visual'][start:end]
-
         audio_seq = data[vid]['audio'][start:end]
-
-
         score_seq = data[vid]['scores'][start:end]
         label_seq = data[vid]['labels'][start:end]
         visual.append(visual_seq)
@@ -304,8 +274,8 @@ def get_batch_train(data,train_scheme,step,gpu_num,bc,seq_len):
             logging.info('\n\nError!',step,pos,vid,i,label_seq,label_seq_orgin,'\n\n')
 
     # reshape
-    visual = np.array(visual).reshape((gpu_num*bc,seq_len,V_NUM * 5,V_HEIGHT,V_WIDTH,V_CHANN))
-    audio = np.array(audio).reshape((gpu_num*bc,seq_len,A_NUM * 5,A_HEIGHT,A_WIDTH,A_CHANN))
+    visual = np.array(visual).reshape((gpu_num*bc,seq_len,V_NUM,V_HEIGHT,V_WIDTH,V_CHANN))
+    audio = np.array(audio).reshape((gpu_num*bc,seq_len,A_NUM,A_HEIGHT,A_WIDTH,A_CHANN))
     score = np.array(score).reshape((gpu_num*bc,seq_len))
     label = np.array(label).reshape((gpu_num*bc,seq_len))
 
@@ -329,8 +299,8 @@ def test_data_build(data_test, seq_len):
         visual = data['visual']
         audio = data['audio']
         score = data['scores']
-        visual_pad = np.zeros((padlen,V_NUM * 5,V_HEIGHT,V_WIDTH,V_CHANN))
-        audio_pad = np.zeros((padlen,A_NUM * 5,A_HEIGHT,A_WIDTH,A_CHANN))
+        visual_pad = np.zeros((padlen,V_NUM,V_HEIGHT,V_WIDTH,V_CHANN))
+        audio_pad = np.zeros((padlen,A_NUM,A_HEIGHT,A_WIDTH,A_CHANN))
         score_pad = np.zeros((padlen))
         visual = np.vstack((visual,visual_pad))
         audio = np.vstack((audio,audio_pad))
@@ -349,8 +319,8 @@ def test_data_build(data_test, seq_len):
         audio_concat = np.vstack((audio_concat, audios[i]))
         score_concat = np.hstack((score_concat,scores[i]))
     data_test_concat = {}
-    data_test_concat['visual_concat'] = visual_concat.reshape((-1,seq_len,V_NUM * 5,V_HEIGHT,V_WIDTH,V_CHANN))
-    data_test_concat['audio_concat'] = audio_concat.reshape((-1,seq_len,A_NUM * 5,A_HEIGHT,A_WIDTH,A_CHANN))
+    data_test_concat['visual_concat'] = visual_concat.reshape((-1,seq_len,V_NUM,V_HEIGHT,V_WIDTH,V_CHANN))
+    data_test_concat['audio_concat'] = audio_concat.reshape((-1,seq_len,A_NUM,A_HEIGHT,A_WIDTH,A_CHANN))
     data_test_concat['scores_concat'] = score_concat.reshape((-1,seq_len))
     data_test_concat['labels'] = labels  # a list
     logging.info('Test data concatenated: '+
@@ -375,8 +345,8 @@ def get_batch_test(data_test_concat,step,gpu_num,bc,seq_len):
     # padding for tail
     segnum = len(data_test_concat['visual_concat'])
     if end > segnum:
-        visual_pad = np.zeros((end-segnum,seq_len,V_NUM * 5,V_HEIGHT,V_WIDTH,V_CHANN))
-        audio_pad = np.zeros((end-segnum,seq_len,A_NUM * 5,A_HEIGHT,A_WIDTH,A_CHANN))
+        visual_pad = np.zeros((end-segnum,seq_len,V_NUM,V_HEIGHT,V_WIDTH,V_CHANN))
+        audio_pad = np.zeros((end-segnum,seq_len,A_NUM,A_HEIGHT,A_WIDTH,A_CHANN))
         score_pad = np.zeros((end-segnum,seq_len))
         visual = np.vstack((visual, visual_pad))
         audio = np.vstack((audio, audio_pad))
@@ -436,11 +406,10 @@ def score_pred(visual,audio,score,visual_weights,visual_biases,audio_weights,aud
     # z形式为bc*seq_len个clip
     # 对encoder来说每个gpu上输入bc*seq_len*d，即每次输入bc个序列，每个序列长seq_len，每个元素维度为d
     # 在encoder中将输入的序列映射到合适的维度
-    seq_input = tf.reshape(z,shape=(BATCH_SIZE*SEQ_LEN,5,-1))  # bc*seq_len*32768
+    seq_input = tf.reshape(z,shape=(BATCH_SIZE,SEQ_LEN,-1))  # bc*seq_len*32768
     logits, attention_list = self_attention(seq_input, score, drop_out, training)  # bc*seq_len
-    logits = tf.reshape(
-        tf.clip_by_value(tf.reshape(tf.sigmoid(logits), [-1, 1]), 1e-6, 0.999999)  # (bc*seq_len,1)
-        , shape=(BATCH_SIZE, SEQ_LEN, 5, -1))[:, :, 2]
+    logits = tf.clip_by_value(tf.reshape(tf.sigmoid(logits), [-1, 1]), 1e-6, 0.999999)  # (bc*seq_len,1)
+
     # # check
     # fc1 = tf.matmul(z, fusion_weights['wd1']) + fusion_biases['bd1']
     # fc1 = tf.nn.relu(fc1)
@@ -562,13 +531,13 @@ def run_training(data_train, data_test, test_mode):
         # placeholders
         visual_holder = tf.placeholder(tf.float32,shape=(BATCH_SIZE * GPU_NUM,
                                                          SEQ_LEN,
-                                                         V_NUM * 5,
+                                                         V_NUM,
                                                          V_HEIGHT,
                                                          V_WIDTH,
                                                          V_CHANN))
         audio_holder = tf.placeholder(tf.float32,shape=(BATCH_SIZE * GPU_NUM,
                                                         SEQ_LEN,
-                                                        A_NUM * 5,
+                                                        A_NUM,
                                                         A_HEIGHT,
                                                         A_WIDTH,
                                                         A_CHANN))
@@ -623,9 +592,9 @@ def run_training(data_train, data_test, test_mode):
         for gpu_index in range(GPU_NUM):
             with tf.device('/gpu:%d' % gpu_index):
                 visual = visual_holder[gpu_index * BATCH_SIZE:(gpu_index + 1) * BATCH_SIZE, :, :, :, :, :]
-                visual = tf.reshape(visual,shape=(BATCH_SIZE*SEQ_LEN * 5,V_NUM,V_HEIGHT,V_WIDTH,V_CHANN))
+                visual = tf.reshape(visual,shape=(BATCH_SIZE*SEQ_LEN,V_NUM,V_HEIGHT,V_WIDTH,V_CHANN))
                 audio = audio_holder[gpu_index * BATCH_SIZE:(gpu_index + 1) * BATCH_SIZE, :, :, :, :, :]
-                audio = tf.reshape(audio,shape=(BATCH_SIZE*SEQ_LEN * 5,A_NUM,A_HEIGHT,A_WIDTH,A_CHANN))
+                audio = tf.reshape(audio,shape=(BATCH_SIZE*SEQ_LEN,A_NUM,A_HEIGHT,A_WIDTH,A_CHANN))
                 labels = labels_holder[gpu_index * BATCH_SIZE:(gpu_index + 1) * BATCH_SIZE, :]
                 scores = scores_holder[gpu_index * BATCH_SIZE:(gpu_index + 1) * BATCH_SIZE, :]
 
@@ -672,6 +641,8 @@ def run_training(data_train, data_test, test_mode):
             logging.info(' Ckpt Model Resrtored !')
 
         # train & test preparation
+        label_2,_ = load_label_info('//data//linkang//tvsum50//label_record_st.json',INFO_PATH)
+        _, data_test, _ = load_data_old(label_2, FEATURE_BASE)
         data_test_concat, test_ids = test_data_build(data_test, SEQ_LEN)
         max_test_step = math.ceil(len(data_test_concat['visual_concat']) / BATCH_SIZE / GPU_NUM)
         # 固定正负样本比例
@@ -728,9 +699,9 @@ def run_training(data_train, data_test, test_mode):
                 if test_mode == 1:
                     return
                 # save model
-                if step > PHASES_STEPS[-1] - PRESTEPS and f >= max_f1:
-                    if f > max_f1:
-                        max_f1 = f
+                # if step > PHASES_STEPS[-1] - PRESTEPS and f >= max_f1:
+                if f > max_f1:
+                    max_f1 = f
                     model_path = model_save_dir + 'S%d-E%d-L%.6f-F%.3f' % (step,epoch,np.mean(loss_array),f)
                     saver_overall.save(sess, model_path)
                     logging.info('Model Saved: '+model_path+'\n')
@@ -758,13 +729,13 @@ def main(self):
     logging.info('Model Dir: '+model_save_dir)
     logging.info('Training Phases: '+str(PHASES_STEPS))
     logging.info('LR: '+str(PHASES_LR))
-    # logging.info('Label: '+str(LABEL_PATH))
+    logging.info('Label: '+str(LABEL_PATH))
     logging.info('Dropout Rate: '+str(DROP_OUT))
     logging.info('Sequence Length: '+str(SEQ_LEN))
     logging.info('Sequence Interval: '+str(SEQ_INTERVAL))
     logging.info('*' * 50+'\n')
 
-    run_training(data_train, data_test, 0)  # for training
+    run_training(data_train, data_valid, 0)  # for training
     # run_training(data_train, data_test, 1)  # for testing
 
 if __name__ == "__main__":

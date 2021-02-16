@@ -23,7 +23,7 @@ SERVER = 1
 class Path:
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', default='1,2',type=str)
-    parser.add_argument('--dropout',default='0.25',type=float)
+    parser.add_argument('--dropout',default='0.1',type=float)
     if SERVER == 0:
         parser.add_argument('--msd', default='SelfAttention', type=str)
     else:
@@ -35,14 +35,16 @@ hp = parser.parse_args()
 if SERVER == 0:
     tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 else:
+    tf.logging.set_verbosity(tf.logging.ERROR)
     os.environ["CUDA_VISIBLE_DEVICES"] = hp.gpu
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # global paras
 PRESTEPS = 0
-MAXSTEPS = 24000
-MIN_TRAIN_STEPS = 0
 WARMUP_STEP = 4000
-LR_TRAIN = 1e-6
+MAXSTEPS = 30000
+PHASES_STEPS = [10000]
+PHASES_LR = [3e-7,1e-7]
 HIDDEN_SIZE = 128  # for lstm
 DROP_OUT = hp.dropout
 
@@ -53,8 +55,7 @@ MAX_F1 = 0.26
 
 GPU_NUM = 1
 BATCH_SIZE = 4
-SEQ_INTERVAL = 1
-
+SEQ_INTERVAL = Transformer.INTERVAL
 D_MODEL = Transformer.D_MODEL
 SEQ_LEN = Transformer.SEQ_LEN
 
@@ -426,8 +427,8 @@ def score_pred(visual,audio,score,visual_weights,visual_biases,audio_weights,aud
     # 对encoder来说每个gpu上输入bc*seq_len*d，即每次输入bc个序列，每个序列长seq_len，每个元素维度为d
     # 在encoder中将输入的序列映射到合适的维度
     seq_input = tf.reshape(z,shape=(BATCH_SIZE,SEQ_LEN,-1))  # bc*seq_len*196608
-    logits, attention_list = self_attention(seq_input, score, attention_weights, attention_biases, drop_out, training)  # bc*seq_len
-    logits = tf.clip_by_value(tf.reshape(tf.sigmoid(logits), [-1, 1]), 1e-8, 0.99999999)  # (bc*seq_len,1)
+    logits, attention_list = self_attention(seq_input, score, drop_out, training)  # bc*seq_len
+    logits = tf.clip_by_value(tf.reshape(tf.sigmoid(logits), [-1, 1]), 1e-6, 0.999999)  # (bc*seq_len,1)
 
     return logits, attention_list
 
@@ -491,13 +492,9 @@ def evaluation(pred_scores, data_test, test_ids, seq_len):
         preds_list = list(preds)
         preds_list.sort(reverse=True)
         threshold = preds_list[hlnum]
-        if threshold * 1.00 <= preds_list[0]:
-            threshold = threshold * 1.00
-            # 分数达到threshold的1.02以上的都作为highlight，但要注意当threshold位置的值放大后可能会大于最大值，造成全部预测为0
-        # labels_pred = (preds >= threshold).astype(int)
         labels_pred = np.zeros_like(preds)
         for i in range(len(labels_pred)):
-            if preds[i] >= threshold and np.sum(labels_pred) < hlnum:
+            if preds[i] > threshold and np.sum(labels_pred) < hlnum:
                 labels_pred[i] = 1
         label_true_all = np.concatenate((label_true_all, labels))
         label_pred_all = np.concatenate((label_pred_all, labels_pred))
@@ -552,7 +549,8 @@ def run_training(data_train, data_test, test_mode):
         varlist_visual = list(weights.values()) + list(biases.values())
         varlist_audio = list(audio_weights.values()) + list(audio_biases.values())
         # training operations
-        lr = noam_scheme(LR_TRAIN,global_step,WARMUP_STEP)
+        # lr = noam_scheme(LR_TRAIN,global_step,WARMUP_STEP)
+        lr = tf.train.piecewise_constant(global_step, PHASES_STEPS, PHASES_LR)
         opt_train = tf.train.AdamOptimizer(lr)
 
         # graph building
@@ -617,7 +615,7 @@ def run_training(data_train, data_test, test_mode):
         # epoch_step = math.ceil(len(train_scheme[0]) / (BATCH_SIZE * GPU_NUM - 1))
         # 不区分正负样本
         train_scheme = train_scheme_build(data_train, SEQ_LEN, SEQ_INTERVAL)
-        epoch_step = math.ceil(len(train_scheme) / (BATCH_SIZE * GPU_NUM - 1))
+        epoch_step = math.ceil(len(train_scheme) / (BATCH_SIZE * GPU_NUM))
 
         # Beging training
         ob_loss = []
@@ -667,25 +665,21 @@ def run_training(data_train, data_test, test_mode):
                     return
 
                 # save model
-                if step > MIN_TRAIN_STEPS - PRESTEPS and f >= (max_f1 - 0.025):
+                if step > PHASES_STEPS[-1] - PRESTEPS and f >= max_f1:
                     if f > max_f1:
                         max_f1 = f
-                    model_path_base = model_save_dir + 'MAXF1_' + str('%.3f' % f)
-                    name_id = 0
-                    while os.path.isfile(model_path_base + '_%d.meta'%name_id):
-                        name_id += 1
-                    model_path = model_path_base + '_%d'%name_id
+                    model_path = model_save_dir + 'S%d-E%d-L%.6f-F%.3f' % (step,epoch,np.mean(loss_array),f)
                     saver_overall.save(sess, model_path)
                     logging.info('Model Saved: '+model_path+'\n')
 
-            if step % 1000 == 0 and step > 0:
-                model_path = model_save_dir + 'STEP_' + str(step + PRESTEPS)
-                # saver_overall.save(sess, model_path)
+            if step % 5000 == 0 and step > 0:
+                model_path = model_save_dir + 'S%d-E%d' % (step+PRESTEPS, epoch)
+                saver_overall.save(sess, model_path)
                 logging.info('Model Saved: '+str(step + PRESTEPS))
 
             # saving final model
-        model_path = model_save_dir + 'STEP_' + str(MAXSTEPS + PRESTEPS)
-        # saver_overall.save(sess, model_path)
+        model_path = model_save_dir + 'S%d' % (MAXSTEPS + PRESTEPS)
+        saver_overall.save(sess, model_path)
         logging.info('Model Saved: '+str(MAXSTEPS + PRESTEPS))
 
     return
@@ -697,15 +691,15 @@ def main(self):
 
     logging.info('*'*20+'Settings'+'*'*20)
     logging.info('Model Dir: '+model_save_dir)
-    logging.info('LR: '+str(LR_TRAIN))
+    logging.info('Training Phases: ' + str(PHASES_STEPS))
+    logging.info('LR: '+str(PHASES_LR))
     logging.info('Label: '+str(LABEL_PATH))
-    logging.info('Min Training Steps: '+str(MIN_TRAIN_STEPS))
     logging.info('Dropout Rate: '+str(DROP_OUT))
     logging.info('Sequence Length: '+str(SEQ_LEN))
     logging.info('Sequence Interval: '+str(SEQ_INTERVAL))
     logging.info('*' * 50+'\n')
 
-    run_training(data_train, data_valid, 0)  # for training
+    run_training(data_train, data_test, 0)  # for training
     # run_training(data_train, data_train, 1)  # for testing
 
 if __name__ == "__main__":

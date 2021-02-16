@@ -590,7 +590,7 @@ def run_training(data_train, data_test, test_mode):
         # epoch_step = math.ceil(len(train_scheme[0]) / (BATCH_SIZE * GPU_NUM - 1))
         # 不区分正负样本
         train_scheme = train_scheme_build(data_train, SEQ_LEN, SEQ_INTERVAL)
-        epoch_step = math.ceil(len(train_scheme) / (BATCH_SIZE * GPU_NUM - 1))
+        epoch_step = math.ceil(len(train_scheme) / (BATCH_SIZE * GPU_NUM))
 
         # Begin training
         ob_loss = []

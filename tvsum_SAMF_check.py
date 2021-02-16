@@ -16,16 +16,16 @@ import argparse
 import Transformer
 from Transformer import self_attention
 
-SERVER = 0
+SERVER = 1
 
 class Path:
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gpu', default='0,2',type=str)
+    parser.add_argument('--gpu', default='3',type=str)
     parser.add_argument('--dropout',default='0.1',type=float)
     if SERVER == 0:
         parser.add_argument('--msd', default='TVSum_SelfAttention', type=str)
     else:
-        parser.add_argument('--msd', default='model_tvsum_SA', type=str)
+        parser.add_argument('--msd', default='model_tvsum_SA_2', type=str)
 hparams = Path()
 parser = hparams.parser
 hp = parser.parse_args()
@@ -33,7 +33,9 @@ hp = parser.parse_args()
 if SERVER == 0:
     tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 else:
+    tf.logging.set_verbosity(tf.logging.ERROR)
     os.environ["CUDA_VISIBLE_DEVICES"] = hp.gpu
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # global paras
 PRESTEPS = 0
@@ -136,6 +138,63 @@ def load_data(label_record,feature_base):
         temp['scores'] = scores
         data[vid] = temp
     return data
+
+def load_data_old(label_record, feature_base):
+    # 装载所有特征，划分测试集
+    vids = list(label_record.keys())
+    data_train = {}
+    data_valid = {}
+    data_test = {}
+    for vid in vids:
+        logging.info('-'*20+str(vid)+'-'*20)
+        # load data & label
+        visual_path = feature_base + vid + r'/features_visual_ovr.npy'
+        audio_path = feature_base + vid + r'/features_audio_ovr.npy'
+        visual = np.load(visual_path).reshape((-1, V_NUM, V_HEIGHT, V_WIDTH, V_CHANN))
+        audio = np.load(audio_path).reshape((-1, A_NUM, A_HEIGHT, A_WIDTH, A_CHANN))
+        labels = np.array(label_record[vid]['label'])
+        scores = np.array(label_record[vid]['score'])
+
+        # split train & valid & test set
+        trindex = label_record[vid]['train_index']
+        vdindex = label_record[vid]['valid_index']
+        teindex = label_record[vid]['test_index']
+
+        temp_train = {}
+        temp_train['visual'] = visual[trindex]
+        temp_train['audio'] = audio[trindex]
+        temp_train['labels'] = labels[trindex]
+        temp_train['scores'] = scores[trindex]
+        temp_train['hl_num'] = int(np.sum(temp_train['labels']))
+        temp_train['nhl_num'] = len(temp_train['labels']) - temp_train['hl_num']
+        data_train[vid] = temp_train
+
+        temp_valid = {}
+        temp_valid['visual'] = visual[vdindex]
+        temp_valid['audio'] = audio[vdindex]
+        temp_valid['labels'] = labels[vdindex]
+        temp_valid['scores'] = scores[vdindex]
+        temp_valid['hl_num'] = int(np.sum(temp_valid['labels']))
+        temp_valid['nhl_num'] = len(temp_valid['labels']) - temp_valid['hl_num']
+        data_valid[vid] = temp_valid
+
+        temp_test = {}
+        temp_test['visual'] = visual[teindex]
+        temp_test['audio'] = audio[teindex]
+        temp_test['labels'] = labels[teindex]
+        temp_test['scores'] = scores[teindex]
+        temp_test['hl_num'] = int(np.sum(temp_test['labels']))
+        temp_test['nhl_num'] = len(temp_test['labels']) - temp_test['hl_num']
+        data_test[vid] = temp_test
+
+        logging.info('Data(train, valid, test): '+
+                     str(temp_train['visual'].shape)+str(temp_valid['audio'].shape)+str(temp_test['audio'].shape))
+        logging.info('Scores(train, valid, test): '+
+                     str(len(temp_train['scores']))+str(len(temp_valid['scores']))+str(len(temp_test['scores'])))
+        logging.info('Labels(train, valid, test): '+
+                     str(len(temp_train['labels']))+str(len(temp_valid['labels']))+str(len(temp_test['labels'])))
+
+    return data_train, data_valid, data_test
 
 def split_data(video_cat,data):
     # 随机划分数据集
@@ -312,7 +371,7 @@ def conv3d(name, l_input, w, b):
           )
 
 def score_pred(visual,audio,score,visual_weights,visual_biases,audio_weights,audio_biases,
-               attention_weights,attention_biases,drop_out,training):
+               fusion_weights,fusion_biases,drop_out,training):
     # audio convolution
     audio_feat = tf.reshape(audio,shape=(-1,A_HEIGHT,A_WIDTH,A_CHANN))  # b*8*8*128
     audio_conv5 = tf.nn.conv2d(audio_feat, audio_weights['wc5'], [1, 1, 1, 1], padding='SAME')
@@ -346,8 +405,25 @@ def score_pred(visual,audio,score,visual_weights,visual_biases,audio_weights,aud
     # 对encoder来说每个gpu上输入bc*seq_len*d，即每次输入bc个序列，每个序列长seq_len，每个元素维度为d
     # 在encoder中将输入的序列映射到合适的维度
     seq_input = tf.reshape(z,shape=(BATCH_SIZE,SEQ_LEN,-1))  # bc*seq_len*32768
-    logits, attention_list = self_attention(seq_input, score, attention_weights, attention_biases, drop_out, training)  # bc*seq_len
-    logits = tf.clip_by_value(tf.reshape(tf.sigmoid(logits), [-1, 1]), 1e-8, 0.99999999)  # (bc*seq_len,1)
+    logits, attention_list = self_attention(seq_input, score, drop_out, training)  # bc*seq_len
+    logits = tf.clip_by_value(tf.reshape(tf.sigmoid(logits), [-1, 1]), 1e-6, 0.999999)  # (bc*seq_len,1)
+
+    # check
+    # fc1 = tf.matmul(z, fusion_weights['wd1']) + fusion_biases['bd1']
+    # fc1 = tf.nn.relu(fc1)
+    # fc1 = tf.layers.dropout(fc1, drop_out)
+    # fc2 = tf.matmul(fc1, fusion_weights['wd2']) + fusion_biases['bd2']
+    # fc2 = tf.nn.relu(fc2)
+    # fc2 = tf.layers.dropout(fc2, drop_out)
+    # fc3 = tf.matmul(fc2, fusion_weights['wd3']) + fusion_biases['bd3']
+    # fc3 = tf.nn.relu(fc3)
+    # fc3 = tf.layers.dropout(fc3, drop_out)
+    # fc4 = tf.matmul(fc3, fusion_weights['wd4']) + fusion_biases['bd4']
+    # fc4 = tf.nn.relu(fc4)
+    # fc4 = tf.layers.dropout(fc4, drop_out)
+    # logits = tf.matmul(fc4, fusion_weights['wout']) + fusion_biases['bout']  # b*1
+    # logits = tf.clip_by_value(tf.reshape(tf.sigmoid(logits), [-1, 1]), 1e-8, 0.99999999)  # (bc*seq_len,1)
+    # attention_list = []
 
     return logits, attention_list
 
@@ -357,6 +433,15 @@ def tower_loss(name_scope,logits,labels):
     # loss = tf.reduce_sum(ce)
     ce = -y * (tf.log(logits)) - (1 - y) * tf.log(1 - logits)
     loss = tf.reduce_mean(ce)
+    # y_p = tf.reduce_mean(logits * labels)/tf.reduce_mean(labels)
+    # y_n = tf.reduce_mean(logits * (1-labels)) / tf.reduce_mean(1-labels)
+    # u = 1 - y_p + y_n
+    # lp = tf.nn.relu(u)
+    # delta = 3
+    # condition = tf.less(u, delta)
+    # v = tf.square(lp) * 0.5
+    # w = lp * delta - delta * delta * 0.5
+    # loss = tf.where(condition, x=v, y=w)
     return loss
 
 def average_gradients(tower_grads):
@@ -391,10 +476,10 @@ def evaluation_ext(pred_scores, data_test, test_ids, seq_len):
     for i in range(1, len(pred_scores)):
         preds_c = preds_c + list(pred_scores[i])
 
-    ext_ratio = 1.00
+    ext_ratio = 0.95
     f1_max = 0
     ext_max = ext_ratio
-    while ext_ratio <= 1.00:
+    while round(ext_ratio,2) <= 1.05:
         pos = 0
         label_pred_all = np.array(())
         label_true_all = np.array(())
@@ -418,10 +503,9 @@ def evaluation_ext(pred_scores, data_test, test_ids, seq_len):
             threshold = preds_list[hlnum]
             if threshold * ext_ratio <= preds_list[0]:
                 threshold = threshold * ext_ratio
-                # 分数达到threshold的1.02以上的都作为highlight，但要注意当threshold位置的值放大后可能会大于最大值，造成全部预测为0
             labels_pred = np.zeros_like(preds)
             for i in range(len(labels_pred)):
-                if preds[i] >= threshold and np.sum(labels_pred) < hlnum:
+                if preds[i] > threshold :#and np.sum(labels_pred) < hlnum:
                     labels_pred[i] = 1
             label_true_all = np.concatenate((label_true_all, labels))
             label_pred_all = np.concatenate((label_pred_all, labels_pred))
@@ -434,27 +518,74 @@ def evaluation_ext(pred_scores, data_test, test_ids, seq_len):
         if f > f1_max:
             f1_max = f
             ext_max = ext_ratio
-        logging.info('Extend: %.2f,%.3f,%.3f,%.3f,%.3f' %(ext_ratio,a,p,r,f))
+        logging.info('Extend: %.10f,%.3f,%.3f,%.3f,%.3f,%d,%d'%(ext_ratio,a,p,r,f,np.sum(label_true_all),np.sum(label_pred_all)))
         ext_ratio += 0.01
     logging.info('Max Ratio: %.2f,%.3f' % (ext_max, f1_max))
     return
 
+def evaluation_simple(pred_scores, data_test, test_ids, seq_len):
+    # 根据预测的分数和对应的标签计算aprf以及mse
+    # 输入模型训练时的总bc，用于计算测试数据中填充部分的长度
+    preds_c = list(pred_scores[0])
+    for i in range(1, len(pred_scores)):
+        preds_c = preds_c + list(pred_scores[i])
+
+    pos = 0
+    label_pred_all = np.array(())
+    label_true_all = np.array(())
+    for vid in test_ids:
+        labels = data_test[vid]['labels'].reshape((-1,))
+        # 计算padding，提取preds中的有效预测部分
+        vlength = len(labels)
+        padlen = seq_len - vlength % seq_len
+        padlen = padlen % seq_len  # 当vlength是seq_len的整数倍时，不需要padding
+        vlength_pad = vlength + padlen
+        # 截取有效的预测部分
+        preds = preds_c[pos:pos + vlength_pad]
+        preds = np.array(preds).reshape((-1,))
+        pos += vlength_pad  # pos按照填充后的长度移动，移动到下一个视频的预测部分起点
+        preds = preds[:vlength]  # preds的有效预测长度
+        # predict
+        hlnum = int(np.sum(labels))
+        preds_list = list(preds)
+        preds_list.sort(reverse=True)
+        threshold = preds_list[hlnum]
+        labels_pred = np.zeros_like(preds)
+        for i in range(len(labels_pred)):
+            if preds[i] > threshold and np.sum(labels_pred) < hlnum:
+                labels_pred[i] = 1
+        label_true_all = np.concatenate((label_true_all, labels))
+        label_pred_all = np.concatenate((label_pred_all, labels_pred))
+
+    a = accuracy_score(label_true_all, label_pred_all)
+    p = precision_score(label_true_all, label_pred_all)
+    r = recall_score(label_true_all, label_pred_all)
+    f = f1_score(label_true_all, label_pred_all)
+    logging.info('APRF: %.3f,%.3f,%.3f,%.3f' % (a, p, r, f))
+    return a,p,r,f
+
 def model_search(model_save_dir):
+    def takestep(name):
+        return int(name.split('-')[0].split('S')[-1])
     # 找到要验证的模型名称
     model_to_restore = []
     for root,dirs,files in os.walk(model_save_dir):
         for file in files:
-            if file.startswith('MINMSE'):
-                model_name = 'MINMSE_0.' + file.split('.')[1]
+            if file.endswith('.meta'):
+                model_name = file.split('.meta')[0]
                 model_to_restore.append(os.path.join(root, model_name))
-            if file.startswith('MAXF1'):
-                model_name = 'MAXF1_0.' + file.split('.')[1]
-                model_to_restore.append(os.path.join(root, model_name))
-            if file.startswith('STEP'):
-                model_name = file.split('.')[0]
-                model_to_restore.append(os.path.join(root,model_name))
+            # if file.startswith('MINMSE'):
+            #     model_name = 'MINMSE_0.' + file.split('.')[1]
+            #     model_to_restore.append(os.path.join(root, model_name))
+            # if file.startswith('MAXF1'):
+            #     model_name = 'MAXF1_0.' + file.split('.')[1]
+            #     model_to_restore.append(os.path.join(root, model_name))
+            # if file.startswith('STEP'):
+            #     model_name = file.split('.')[0]
+            #     model_to_restore.append(os.path.join(root,model_name))
+
     model_to_restore = list(set(model_to_restore))
-    model_to_restore.sort()
+    model_to_restore.sort(key=takestep)
     return model_to_restore
 
 def run_training(data_train, data_test, data_test_concat, test_ids, model_path, test_mode):
@@ -549,9 +680,9 @@ def run_training(data_train, data_test, data_test_concat, test_ids, model_path, 
 
         saver_overall = tf.train.Saver(max_to_keep=100)
         if load_ckpt_model:
-            logging.info(' Ckpt Model Restoring: ' + model_path)
+            # logging.info(' Ckpt Model Restoring: ' + model_path)
             saver_overall.restore(sess, model_path)
-            logging.info(' Ckpt Model Resrtored !')
+            # logging.info(' Ckpt Model Resrtored !')
 
         # train & test preparation
         max_test_step = math.ceil(len(data_test_concat['visual_concat']) / BATCH_SIZE / GPU_NUM)
@@ -560,7 +691,7 @@ def run_training(data_train, data_test, data_test_concat, test_ids, model_path, 
         # epoch_step = math.ceil(len(train_scheme[0]) / (BATCH_SIZE * GPU_NUM - 1))
         # 不区分正负样本
         train_scheme = train_scheme_build(data_train, SEQ_LEN, SEQ_INTERVAL)
-        epoch_step = math.ceil(len(train_scheme) / (BATCH_SIZE * GPU_NUM - 1))
+        epoch_step = math.ceil(len(train_scheme) / (BATCH_SIZE * GPU_NUM))
 
         # Beging training
         ob_loss = []
@@ -603,17 +734,18 @@ def run_training(data_train, data_test, data_test_concat, test_ids, model_path, 
                                                                         dropout_holder: 0})
                     for preds in logits_temp_list:
                         pred_scores.append(preds.reshape((-1)))
-                evaluation_ext(pred_scores, data_test, test_ids, SEQ_LEN)
+                evaluation_simple(pred_scores, data_test, test_ids, SEQ_LEN)
                 return
     return
 
 def main(self):
     label_record, video_cat = load_label_info(LABEL_PATH,INFO_PATH)
-    data = load_data(label_record, FEATURE_BASE)
-    data_train, data_valid, data_test = split_data(video_cat,data)
+    # data = load_data(label_record, FEATURE_BASE)
+    # data_train, data_valid, data_test = split_data(video_cat,data)
+    data_train, data_valid, data_test = load_data_old(label_record, FEATURE_BASE)
     logging.info('Data loaded !')
 
-    data_test_actual = data_test
+    data_test_actual = data_valid
     data_test_concat, test_ids = test_data_build(data_test_actual, SEQ_LEN)
     models_to_restore = model_search(model_save_dir)
     # models_to_restore = ['../../model_HL_v3/model_bilibili_SA_6l_2/MAXF1_0.286_0']

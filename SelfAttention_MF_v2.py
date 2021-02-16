@@ -30,7 +30,7 @@ class Path:
         parser.add_argument('--msd', default='model_bilibili_SA', type=str)
 hparams = Path()
 parser = hparams.parser
-hp = parser.parse_args()
+hp = parser.parse_args() 
 
 if SERVER == 0:
     tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)

@@ -23,7 +23,7 @@ SERVER = 0
 class Path:
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', default='1,2',type=str)
-    parser.add_argument('--dropout',default='0.1',type=float)
+    parser.add_argument('--dropout',default='0.15',type=float)
     if SERVER == 0:
         parser.add_argument('--msd', default='SelfAttention', type=str)
     else:
@@ -669,17 +669,17 @@ def run_training(data_train, data_test, test_mode):
                     if f > max_f1:
                         max_f1 = f
                     model_path = model_save_dir + 'S%d-E%d-L%.6f-F%.3f' % (step,epoch,np.mean(loss_array),f)
-                    # saver_overall.save(sess, model_path)
+                    saver_overall.save(sess, model_path)
                     logging.info('Model Saved: '+model_path+'\n')
 
             if step % 5000 == 0 and step > 0:
                 model_path = model_save_dir + 'S%d-E%d' % (step+PRESTEPS, epoch)
-                # saver_overall.save(sess, model_path)
+                saver_overall.save(sess, model_path)
                 logging.info('Model Saved: '+str(step + PRESTEPS))
 
             # saving final model
         model_path = model_save_dir + 'S%d' % (MAXSTEPS + PRESTEPS)
-        # saver_overall.save(sess, model_path)
+        saver_overall.save(sess, model_path)
         logging.info('Model Saved: '+str(MAXSTEPS + PRESTEPS))
 
     return

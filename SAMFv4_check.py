@@ -36,6 +36,7 @@ hp = parser.parse_args()
 
 if SERVER == 0:
     tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 else:
     tf.logging.set_verbosity(tf.logging.ERROR)
     os.environ["CUDA_VISIBLE_DEVICES"] = hp.gpu

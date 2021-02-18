@@ -456,7 +456,7 @@ def evaluation(pred_scores, data_test, test_ids, seq_len):
         hlnum = int(np.sum(labels))
         preds_list = list(preds)
         preds_list.sort(reverse=True)
-        threshold = preds_list[hlnum] * 1.02
+        threshold = preds_list[hlnum]
         labels_pred = np.zeros_like(preds)
         for i in range(len(labels_pred)):
             if preds[i] > threshold :#and np.sum(labels_pred) < hlnum:

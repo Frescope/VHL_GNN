@@ -20,11 +20,11 @@ SERVER = 0
 class Path:
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', default='1',type=str)
-    parser.add_argument('--dropout',default='0.1',type=float)
     parser.add_argument('--num_heads',default=32,type=int)
     parser.add_argument('--num_blocks',default=4,type=int)
-    parser.add_argument('--seq_len',default=10,type=int)
+    parser.add_argument('--seq_len',default=15,type=int)
     parser.add_argument('--bc',default=4,type=int)
+    parser.add_argument('--dropout',default='0.1',type=float)
     parser.add_argument('--gpu_num',default=1,type=int)
     if SERVER == 0:
         parser.add_argument('--msd', default='SelfAttention', type=str)
@@ -652,17 +652,17 @@ def run_training(data_train, data_test, test_mode):
                     if f > max_f1:
                         max_f1 = f
                     model_path = model_save_dir + 'S%d-E%d-L%.6f-F%.3f' % (step,epoch,np.mean(loss_array),f)
-                    # saver_overall.save(sess, model_path)
+                    saver_overall.save(sess, model_path)
                     logging.info('Model Saved: '+model_path+'\n')
 
-            if step % 6000 == 0 and step > 0:
+            if step % 1000 == 0 and step > 0:
                 model_path = model_save_dir + 'S%d-E%d' % (step+PRESTEPS, epoch)
-                # saver_overall.save(sess, model_path)
+                saver_overall.save(sess, model_path)
                 logging.info('Model Saved: '+str(step + PRESTEPS))
 
             # saving final model
         model_path = model_save_dir + 'S%d' % (MAXSTEPS + PRESTEPS)
-        # saver_overall.save(sess, model_path)
+        saver_overall.save(sess, model_path)
         logging.info('Model Saved: '+str(MAXSTEPS + PRESTEPS))
 
     return
@@ -681,7 +681,7 @@ def main(self):
     logging.info('Sequence Length: '+str(SEQ_LEN))
     logging.info('*' * 50+'\n')
 
-    run_training(data_train, data_test, 0)  # for training
+    run_training(data_train, data_valid, 0)  # for training
     # run_training(data_train, data_train, 1)  # for testing
 
 if __name__ == "__main__":

@@ -82,9 +82,9 @@ def scaled_dot_product_attention(Q, K, V, key_masks,
             outputs = mask(outputs, type="future")
 
         # softmax
-        outputs = tf.zeros_like(outputs)  # attention权重全部相等
+        # outputs = tf.zeros_like(outputs)  # attention权重全部相等
         outputs = tf.nn.softmax(outputs)
-        # outputs = tf.zeros_like(outputs)  # 没有attention输出
+        outputs = tf.zeros_like(outputs)  # 没有attention输出
         attention = outputs
 
         # dropout

@@ -21,7 +21,7 @@ class Path:
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', default='1',type=str)
     parser.add_argument('--num_heads',default=32,type=int)
-    parser.add_argument('--num_blocks',default=4,type=int)
+    parser.add_argument('--num_blocks',default=5,type=int)
     parser.add_argument('--seq_len',default=15,type=int)
     parser.add_argument('--bc',default=4,type=int)
     parser.add_argument('--dropout',default='0.1',type=float)

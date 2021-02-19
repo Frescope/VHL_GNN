@@ -15,13 +15,13 @@ import argparse
 import Transformer_v2
 from Transformer_v2 import self_attention
 
-SERVER = 0
+SERVER = 1
 
 class Path:
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', default='1',type=str)
     parser.add_argument('--num_heads',default=32,type=int)
-    parser.add_argument('--num_blocks',default=4,type=int)
+    parser.add_argument('--num_blocks',default=5,type=int)
     parser.add_argument('--seq_len',default=15,type=int)
     parser.add_argument('--bc',default=4,type=int)
     parser.add_argument('--dropout',default='0.1',type=float)
@@ -29,7 +29,7 @@ class Path:
     if SERVER == 0:
         parser.add_argument('--msd', default='SelfAttention', type=str)
     else:
-        parser.add_argument('--msd', default='model_bilibili_SA_6l_2', type=str)
+        parser.add_argument('--msd', default='model_bilibili_SA', type=str)
 hparams = Path()
 parser = hparams.parser
 hp = parser.parse_args()
@@ -390,7 +390,7 @@ def score_pred(visual,audio,score,sample_poses,visual_weights,visual_biases,audi
     logits = tf.reduce_sum(logits * target, axis=1)  # 只保留取样位置的值
     logits = tf.reshape(logits, [-1,1])
 
-    return logits, [target]
+    return logits, attention_list
 
 def _loss(sp,sn,delta):
     zeros = tf.constant(0,tf.float32,shape=[sp.get_shape().as_list()[0],1])
@@ -649,7 +649,7 @@ def run_training(data_train, data_test, model_path, test_mode):
                 for test_step in range(max_test_step):
                     visual_b, audio_b, score_b, label_b, sample_pose_b = get_batch_test(data_test, test_scheme,
                                                                                        test_step, GPU_NUM, BATCH_SIZE, SEQ_LEN)
-                    logits_temp_list = sess.run(logits_list, feed_dict={visual_holder: visual_b,
+                    logits_temp_list, att_ob_list = sess.run([logits_list, attention_list], feed_dict={visual_holder: visual_b,
                                                                         audio_holder: audio_b,
                                                                         scores_holder: score_b,
                                                                         sample_poses_holder: sample_pose_b,

@@ -82,7 +82,7 @@ def scaled_dot_product_attention(Q, K, V, key_masks,
             outputs = mask(outputs, type="future")
 
         # softmax
-        outputs = tf.zeros_like(outputs)  # attention权重全部相等
+        # outputs = tf.zeros_like(outputs)  # attention权重全部相等
         outputs = tf.nn.softmax(outputs)
         # outputs = tf.zeros_like(outputs)  # 没有attention输出
         attention = outputs
@@ -155,8 +155,7 @@ def multihead_attention(queries, keys, values, key_masks,
         outputs, attention = scaled_dot_product_attention(Q_, K_, V_, key_masks, causality, dropout_rate, training)
 
         # Restore shape
-        outputs = tf.layers.dropout(
-            tf.concat(tf.split(outputs, num_heads, axis=0), axis=2) , dropout_rate, training=training) # (N, T_q, d_model)
+        outputs = tf.concat(tf.split(outputs, num_heads, axis=0), axis=2)  # (N, T_q, d_model)
 
         # outputs = tf.concat(tf.split(outputs, num_heads, axis=0), axis=2)  # (N, T_q, d_model)
 
@@ -164,7 +163,8 @@ def multihead_attention(queries, keys, values, key_masks,
         outputs += queries
 
         # Normalize
-        outputs = ln(outputs)
+        outputs = tf.layers.dropout(
+            ln(outputs), dropout_rate, training=training)
 
     return outputs, attention
 
@@ -181,14 +181,14 @@ def ff(inputs, num_units, dropout_rate, scope="positionwise_feedforward"):
         outputs = tf.layers.dense(inputs, num_units[0], activation=tf.nn.relu)
 
         # Outer layer
-        outputs = tf.layers.dropout(tf.layers.dense(outputs, num_units[1]), dropout_rate)
+        outputs = tf.layers.dense(outputs, num_units[1])
         # outputs = tf.layers.dense(outputs, num_units[1])
 
         # Residual connection
         outputs += inputs
 
         # Normalize
-        outputs = ln(outputs)
+        outputs = tf.layers.dropout(ln(outputs), dropout_rate)
 
     return outputs
 

@@ -29,7 +29,7 @@ class Path:
     if SERVER == 0:
         parser.add_argument('--msd', default='SelfAttention', type=str)
     else:
-        parser.add_argument('--msd', default='model_bilibili_SA', type=str)
+        parser.add_argument('--msd', default='model_bilibili_SA_6l_2', type=str)
 hparams = Path()
 parser = hparams.parser
 hp = parser.parse_args()
@@ -578,13 +578,13 @@ def run_training(data_train, data_test, model_path, test_mode):
                 varlist = tf.trainable_variables()  # 全部训练
                 varlist = list(set(varlist) - set(varlist_visual) - set(varlist_audio))
                 # varlist = varlist + list(biases.values()) + list(audio_biases.values())
-                grads_train = opt_train.compute_gradients(loss, varlist)
-                thresh = GRAD_THRESHOLD  # 梯度截断 防止爆炸
-                grads_train_cap = [(tf.clip_by_value(grad, -thresh, thresh), var) for grad, var in grads_train]
-                tower_grads_train.append(grads_train_cap)
+                # grads_train = opt_train.compute_gradients(loss, varlist)
+                # thresh = GRAD_THRESHOLD  # 梯度截断 防止爆炸
+                # grads_train_cap = [(tf.clip_by_value(grad, -thresh, thresh), var) for grad, var in grads_train]
+                # tower_grads_train.append(grads_train_cap)
                 loss_list.append(loss)
-        grads_t = average_gradients(tower_grads_train)
-        train_op = opt_train.apply_gradients(grads_t, global_step=global_step)
+        # grads_t = average_gradients(tower_grads_train)
+        # train_op = opt_train.apply_gradients(grads_t, global_step=global_step)
         if test_mode == 1:
             train_op = tf.no_op()
 

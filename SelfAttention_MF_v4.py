@@ -26,6 +26,9 @@ class Path:
     parser.add_argument('--bc',default=4,type=int)
     parser.add_argument('--dropout',default='0.1',type=float)
     parser.add_argument('--gpu_num',default=1,type=int)
+    parser.add_argument('--lr_noam',default=3e-6,type=float)
+    parser.add_argument('--warmup',default=3000,type=int)
+    parser.add_argument('--maxstep',default=20000,type=int)
     if SERVER == 0:
         parser.add_argument('--msd', default='SelfAttention', type=str)
     else:
@@ -43,9 +46,10 @@ else:
 
 # global paras
 PRESTEPS = 0
-WARMUP_STEP = 4000
+WARMUP_STEP = hp.warmup
+LR_NOAM = hp.lr_noam
 MIN_TRAIN_STEPS = 0
-MAXSTEPS = 20000
+MAXSTEPS = hp.maxstep
 PHASES_STEPS = [2000]
 PHASES_LR = [1e-6,1e-7]
 HIDDEN_SIZE = 128  # for lstm
@@ -434,6 +438,16 @@ def average_gradients(tower_grads):
         average_grads.append(grad_and_var)
     return average_grads
 
+def noam_scheme(init_lr, global_step, warmup_steps=4000.):
+    '''Noam scheme learning rate decay
+    init_lr: initial learning rate. scalar.
+    global_step: scalar.
+    warmup_steps: scalar. During warmup_steps, learning rate increases
+        until it reaches init_lr.
+    '''
+    step = tf.cast(global_step + 1, dtype=tf.float32)
+    return init_lr * warmup_steps ** 0.5 * tf.minimum(step * warmup_steps ** -1.5, step ** -0.5)
+
 def evaluation(pred_scores, data_test, test_ids, seq_len):
     # 根据预测的分数和对应的标签计算aprf以及mse
     # 输入模型训练时的总bc，用于计算测试数据中填充部分的长度
@@ -531,8 +545,8 @@ def run_training(data_train, data_test, test_mode):
         varlist_visual = list(weights.values()) + list(biases.values())
         varlist_audio = list(audio_weights.values()) + list(audio_biases.values())
         # training operations
-        # lr = noam_scheme(LR_TRAIN,global_step,WARMUP_STEP)
-        lr = tf.train.piecewise_constant(global_step,PHASES_STEPS,PHASES_LR)
+        lr = noam_scheme(LR_NOAM,global_step,WARMUP_STEP)
+        # lr = tf.train.piecewise_constant(global_step,PHASES_STEPS,PHASES_LR)
         opt_train = tf.train.AdamOptimizer(lr)
 
         # graph building
@@ -652,17 +666,17 @@ def run_training(data_train, data_test, test_mode):
                     if f > max_f1:
                         max_f1 = f
                     model_path = model_save_dir + 'S%d-E%d-L%.6f-F%.3f' % (step,epoch,np.mean(loss_array),f)
-                    saver_overall.save(sess, model_path)
+                    # saver_overall.save(sess, model_path)
                     logging.info('Model Saved: '+model_path+'\n')
 
             if step % 1000 == 0 and step > 0:
                 model_path = model_save_dir + 'S%d-E%d' % (step+PRESTEPS, epoch)
-                saver_overall.save(sess, model_path)
+                # saver_overall.save(sess, model_path)
                 logging.info('Model Saved: '+str(step + PRESTEPS))
 
             # saving final model
         model_path = model_save_dir + 'S%d' % (MAXSTEPS + PRESTEPS)
-        saver_overall.save(sess, model_path)
+        # saver_overall.save(sess, model_path)
         logging.info('Model Saved: '+str(MAXSTEPS + PRESTEPS))
 
     return

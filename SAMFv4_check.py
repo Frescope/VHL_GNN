@@ -481,7 +481,10 @@ def model_search(model_save_dir):
         for file in files:
             if file.endswith('.meta'):
                 model_name = file.split('.meta')[0]
-                model_to_restore.append(os.path.join(root, model_name))
+                step = int(model_name.split('-')[0].split('S')[-1])
+                f1 = model_name.split('-')[-1]
+                if step > 50000 or f1.startswith('F'):
+                    model_to_restore.append(os.path.join(root, model_name))
     model_to_restore = list(set(model_to_restore))
     model_to_restore.sort(key=takestep)
     return model_to_restore

@@ -15,7 +15,7 @@ import argparse
 import Transformer_v2
 from Transformer_v2 import self_attention
 
-SERVER = 1
+SERVER = 0
 
 class Path:
     parser = argparse.ArgumentParser()

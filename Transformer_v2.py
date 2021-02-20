@@ -88,7 +88,7 @@ def scaled_dot_product_attention(Q, K, V, key_masks,
         attention = outputs
 
         # dropout
-        outputs = tf.layers.dropout(outputs, rate=dropout_rate, training=training)
+        outputs = tf.layers.dropout(outputs, rate=0.1, training=training)
 
         # weighted sum (context vectors)
         outputs = tf.matmul(outputs, V)  # (N, T_q, d_v)
@@ -157,8 +157,6 @@ def multihead_attention(queries, keys, values, key_masks,
         # Restore shape
         outputs = tf.concat(tf.split(outputs, num_heads, axis=0), axis=2)  # (N, T_q, d_model)
 
-        # outputs = tf.concat(tf.split(outputs, num_heads, axis=0), axis=2)  # (N, T_q, d_model)
-
         # Residual connection
         outputs += queries
 
@@ -182,7 +180,6 @@ def ff(inputs, num_units, dropout_rate, scope="positionwise_feedforward"):
 
         # Outer layer
         outputs = tf.layers.dense(outputs, num_units[1])
-        # outputs = tf.layers.dense(outputs, num_units[1])
 
         # Residual connection
         outputs += inputs

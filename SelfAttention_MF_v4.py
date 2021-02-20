@@ -695,7 +695,7 @@ def main(self):
     logging.info('Sequence Length: '+str(SEQ_LEN))
     logging.info('*' * 50+'\n')
 
-    run_training(data_train, data_valid, 0)  # for training
+    run_training(data_train, data_test, 0)  # for training
     # run_training(data_train, data_train, 1)  # for testing
 
 if __name__ == "__main__":

@@ -392,7 +392,7 @@ def score_pred(visual,audio,score,sample_poses,visual_weights,visual_biases,audi
     logits = tf.reduce_sum(logits * target, axis=1)  # 只保留取样位置的值
     logits = tf.reshape(logits, [-1,1])
 
-    logits = tf.clip_by_value(tf.reshape(tf.sigmoid(logits), [-1, 1]), 1e-6, 0.999999)  # (bc*seq_len,1)
+    # logits = tf.clip_by_value(tf.reshape(tf.sigmoid(logits), [-1, 1]), 1e-6, 0.999999)  # (bc*seq_len,1)
     return logits, attention_list
 
 def _loss(sp,sn,delta):
@@ -579,8 +579,8 @@ def run_training(data_train, data_test, test_mode):
                 attention_list += atlist_one  # 逐个拼接各个卡上的attention_list
                 # calculate loss & gradients
                 loss_name_scope = ('gpud_%d_loss' % gpu_index)
-                # loss = tower_loss_huber(loss_name_scope, logits, labels)
-                loss = tower_loss(loss_name_scope,logits,labels)
+                loss = tower_loss_huber(loss_name_scope, logits, labels)
+                # loss = tower_loss(loss_name_scope,logits,labels)
                 varlist = tf.trainable_variables()  # 全部训练
                 varlist = list(set(varlist) - set(varlist_visual) - set(varlist_audio))
                 # varlist = varlist + list(biases.values()) + list(audio_biases.values())

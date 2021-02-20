@@ -424,6 +424,12 @@ def tower_loss_huber(name_scope,preds,labels):
 
     return tf.reduce_mean(total_loss)
 
+def tower_loss(name_scope,logits,labels):
+    y = tf.reshape(labels,[-1,1])
+    ce = -y * (tf.log(logits)) - (1 - y) * tf.log(1 - logits)
+    loss = tf.reduce_mean(ce)
+    return loss
+
 def average_gradients(tower_grads):
     average_grads = []
     for grad_and_vars in zip(*tower_grads):
@@ -573,7 +579,8 @@ def run_training(data_train, data_test, test_mode):
                 attention_list += atlist_one  # 逐个拼接各个卡上的attention_list
                 # calculate loss & gradients
                 loss_name_scope = ('gpud_%d_loss' % gpu_index)
-                loss = tower_loss_huber(loss_name_scope, logits, labels)
+                # loss = tower_loss_huber(loss_name_scope, logits, labels)
+                loss = tower_loss(loss_name_scope,logits,labels)
                 varlist = tf.trainable_variables()  # 全部训练
                 varlist = list(set(varlist) - set(varlist_visual) - set(varlist_audio))
                 # varlist = varlist + list(biases.values()) + list(audio_biases.values())

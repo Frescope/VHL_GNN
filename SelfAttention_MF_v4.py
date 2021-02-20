@@ -386,13 +386,13 @@ def score_pred(visual,audio,score,sample_poses,visual_weights,visual_biases,audi
     seq_input = tf.reshape(z,shape=(BATCH_SIZE,SEQ_LEN,-1))  # bc*seq_len*196608
     logits, attention_list = self_attention(seq_input, score, SEQ_LEN, NUM_BLOCKS,
                                             NUM_HEADS, drop_out, training)  # bc*seq_len
-    logits = tf.clip_by_value(tf.reshape(tf.sigmoid(logits), [-1, 1]), 1e-6, 0.999999)  # (bc*seq_len,1)
 
     target = tf.one_hot(indices=sample_poses,depth=logits.get_shape().as_list()[-1],on_value=1,off_value=0)
     target = tf.cast(target,dtype=tf.float32)
     logits = tf.reduce_sum(logits * target, axis=1)  # 只保留取样位置的值
     logits = tf.reshape(logits, [-1,1])
 
+    logits = tf.clip_by_value(tf.reshape(tf.sigmoid(logits), [-1, 1]), 1e-6, 0.999999)  # (bc*seq_len,1)
     return logits, attention_list
 
 def _loss(sp,sn,delta):

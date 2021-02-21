@@ -382,18 +382,18 @@ def score_pred(visual,audio,score,sample_poses,visual_weights,visual_biases,audi
     z = tf.nn.l2_normalize(y, dim=1)  # b*196608
 
     # fully connected
-    fc1 = tf.matmul(z, fusion_weights['wd1']) + fusion_biases['bd1']
-    fc1 = tf.nn.relu(fc1)
-    fc1 = tf.layers.dropout(fc1, drop_out)
-    fc2 = tf.matmul(fc1, fusion_weights['wd2']) + fusion_biases['bd2']
-    fc2 = tf.nn.relu(fc2)
-    fc2 = tf.layers.dropout(fc2, drop_out)
+    # fc1 = tf.matmul(z, fusion_weights['wd1']) + fusion_biases['bd1']
+    # fc1 = tf.nn.relu(fc1)
+    # fc1 = tf.layers.dropout(fc1, drop_out)
+    # fc2 = tf.matmul(fc1, fusion_weights['wd2']) + fusion_biases['bd2']
+    # fc2 = tf.nn.relu(fc2)
+    # fc2 = tf.layers.dropout(fc2, drop_out)
 
     # self-attention
     # z形式为bc*seq_len个clip
     # 对encoder来说每个gpu上输入bc*seq_len*d，即每次输入bc个序列，每个序列长seq_len，每个元素维度为d
     # 在encoder中将输入的序列映射到合适的维度
-    seq_input = tf.reshape(fc2,shape=(BATCH_SIZE,SEQ_LEN,-1))  # bc*seq_len*512
+    seq_input = tf.reshape(z,shape=(BATCH_SIZE,SEQ_LEN,-1))  # bc*seq_len*512
     logits, attention_list = self_attention(seq_input, score, SEQ_LEN, NUM_BLOCKS,
                                             NUM_HEADS, drop_out, training)  # bc*seq_len
 

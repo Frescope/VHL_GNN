@@ -388,15 +388,12 @@ def score_pred(visual,audio,score,sample_poses,visual_weights,visual_biases,audi
     fc2 = tf.matmul(fc1, fusion_weights['wd2']) + fusion_biases['bd2']
     fc2 = tf.nn.relu(fc2)
     fc2 = tf.layers.dropout(fc2, drop_out)
-    fc3 = tf.matmul(fc2, fusion_weights['wd3']) + fusion_biases['bd3']
-    fc3 = tf.nn.relu(fc3)
-    fc3 = tf.layers.dropout(fc3, drop_out)
 
     # self-attention
     # z形式为bc*seq_len个clip
     # 对encoder来说每个gpu上输入bc*seq_len*d，即每次输入bc个序列，每个序列长seq_len，每个元素维度为d
     # 在encoder中将输入的序列映射到合适的维度
-    seq_input = tf.reshape(fc3,shape=(BATCH_SIZE,SEQ_LEN,-1))  # bc*seq_len*512
+    seq_input = tf.reshape(fc2,shape=(BATCH_SIZE,SEQ_LEN,-1))  # bc*seq_len*512
     logits, attention_list = self_attention(seq_input, score, SEQ_LEN, NUM_BLOCKS,
                                             NUM_HEADS, drop_out, training)  # bc*seq_len
 
@@ -547,14 +544,12 @@ def run_training(data_train, data_test, test_mode):
             }
         with tf.variable_scope('var_name_fusion') as var_name_fusion:
             fusion_weights = {
-                'wd1': _variable_with_weight_decay('wd1', [196608, 32768], L2_LAMBDA),
-                'wd2': _variable_with_weight_decay('wd2', [32768, 4096], L2_LAMBDA),
-                'wd3': _variable_with_weight_decay('wd3', [4096, 512], L2_LAMBDA),
+                'wd1': _variable_with_weight_decay('wd1', [196608, 8192], L2_LAMBDA),
+                'wd2': _variable_with_weight_decay('wd2', [8192, 1024], L2_LAMBDA),
             }
             fusion_biases = {
-                'bd1': _variable_with_weight_decay('bd1', [32768], 0.0000),
-                'bd2': _variable_with_weight_decay('bd2', [4096], 0.0000),
-                'bd3': _variable_with_weight_decay('bd3', [512], 0.0000),
+                'bd1': _variable_with_weight_decay('bd1', [8192], 0.0000),
+                'bd2': _variable_with_weight_decay('bd2', [1024], 0.0000),
             }
 
         varlist_visual = list(weights.values()) + list(biases.values())

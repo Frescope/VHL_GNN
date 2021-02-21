@@ -19,7 +19,7 @@ SERVER = 0
 
 class Path:
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gpu', default='1',type=str)
+    parser.add_argument('--gpu', default='3',type=str)
     parser.add_argument('--num_heads',default=32,type=int)
     parser.add_argument('--num_blocks',default=4,type=int)
     parser.add_argument('--seq_len',default=15,type=int)
@@ -39,6 +39,7 @@ hp = parser.parse_args()
 
 if SERVER == 0:
     tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+    # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 else:
     tf.logging.set_verbosity(tf.logging.ERROR)
     os.environ["CUDA_VISIBLE_DEVICES"] = hp.gpu
@@ -350,7 +351,8 @@ def conv3d(name, l_input, w, b):
           b
           )
 
-def score_pred(visual,audio,score,sample_poses,visual_weights,visual_biases,audio_weights,audio_biases,drop_out,training):
+def score_pred(visual,audio,score,sample_poses,visual_weights,visual_biases,audio_weights,audio_biases,
+               fusion_weights, fusion_biases, drop_out,training):
     # audio convolution
     audio_feat = tf.reshape(audio,shape=(-1,A_HEIGHT,A_WIDTH,A_CHANN))  # 6b*8*8*128
     audio_conv5 = tf.nn.conv2d(audio_feat, audio_weights['wc5'], [1, 1, 1, 1], padding='SAME')
@@ -379,11 +381,22 @@ def score_pred(visual,audio,score,sample_poses,visual_weights,visual_biases,audi
     y = tf.multiply(tf.sign(x), tf.sqrt(tf.abs(x)))  # b*196608
     z = tf.nn.l2_normalize(y, dim=1)  # b*196608
 
+    # fully connected
+    fc1 = tf.matmul(z, fusion_weights['wd1']) + fusion_biases['bd1']
+    fc1 = tf.nn.relu(fc1)
+    fc1 = tf.layers.dropout(fc1, drop_out)
+    fc2 = tf.matmul(fc1, fusion_weights['wd2']) + fusion_biases['bd2']
+    fc2 = tf.nn.relu(fc2)
+    fc2 = tf.layers.dropout(fc2, drop_out)
+    fc3 = tf.matmul(fc2, fusion_weights['wd3']) + fusion_biases['bd3']
+    fc3 = tf.nn.relu(fc3)
+    fc3 = tf.layers.dropout(fc3, drop_out)
+
     # self-attention
     # z形式为bc*seq_len个clip
     # 对encoder来说每个gpu上输入bc*seq_len*d，即每次输入bc个序列，每个序列长seq_len，每个元素维度为d
     # 在encoder中将输入的序列映射到合适的维度
-    seq_input = tf.reshape(z,shape=(BATCH_SIZE,SEQ_LEN,-1))  # bc*seq_len*196608
+    seq_input = tf.reshape(fc3,shape=(BATCH_SIZE,SEQ_LEN,-1))  # bc*seq_len*512
     logits, attention_list = self_attention(seq_input, score, SEQ_LEN, NUM_BLOCKS,
                                             NUM_HEADS, drop_out, training)  # bc*seq_len
 
@@ -532,21 +545,17 @@ def run_training(data_train, data_test, test_mode):
             audio_biases = {
                 'bc5': _variable_with_weight_decay('au_bc5', [256], 0.0000),
             }
-        # with tf.variable_scope('var_name_fusion') as var_name_fusion:
-        #     fusion_weights = {
-        #         'wd1': _variable_with_weight_decay('wd1', [32768, 1024], L2_LAMBDA),
-        #         'wd2': _variable_with_weight_decay('wd2', [1024, 512], L2_LAMBDA),
-        #         'wd3': _variable_with_weight_decay('wd3', [512, 256], L2_LAMBDA),
-        #         'wd4': _variable_with_weight_decay('wd4', [256, 64], L2_LAMBDA),
-        #         'wout': _variable_with_weight_decay('wout', [64, 1], L2_LAMBDA),
-        #     }
-        #     fusion_biases = {
-        #         'bd1': _variable_with_weight_decay('bd1', [1024], 0.0000),
-        #         'bd2': _variable_with_weight_decay('bd2', [512], 0.0000),
-        #         'bd3': _variable_with_weight_decay('bd3', [256], 0.0000),
-        #         'bd4': _variable_with_weight_decay('bd4', [64], 0.0000),
-        #         'bout': _variable_with_weight_decay('bout', [1], 0.0000),
-        #     }
+        with tf.variable_scope('var_name_fusion') as var_name_fusion:
+            fusion_weights = {
+                'wd1': _variable_with_weight_decay('wd1', [196608, 32768], L2_LAMBDA),
+                'wd2': _variable_with_weight_decay('wd2', [32768, 4096], L2_LAMBDA),
+                'wd3': _variable_with_weight_decay('wd3', [4096, 512], L2_LAMBDA),
+            }
+            fusion_biases = {
+                'bd1': _variable_with_weight_decay('bd1', [32768], 0.0000),
+                'bd2': _variable_with_weight_decay('bd2', [4096], 0.0000),
+                'bd3': _variable_with_weight_decay('bd3', [512], 0.0000),
+            }
 
         varlist_visual = list(weights.values()) + list(biases.values())
         varlist_audio = list(audio_weights.values()) + list(audio_biases.values())
@@ -574,7 +583,7 @@ def run_training(data_train, data_test, test_mode):
                 # logits, atlist_one = score_pred(visual,audio,scores,weights,biases,audio_weights,audio_biases,
                 #                     fusion_weights,fusion_biases,dropout_holder,training_holder)
                 logits, atlist_one = score_pred(visual, audio, scores, sample_poses, weights, biases, audio_weights, audio_biases,
-                                                dropout_holder, training_holder)
+                                                fusion_weights, fusion_biases, dropout_holder, training_holder)
                 logits_list.append(logits)
                 attention_list += atlist_one  # 逐个拼接各个卡上的attention_list
                 # calculate loss & gradients

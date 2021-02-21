@@ -156,7 +156,7 @@ def multihead_attention(queries, keys, values, key_masks,
 
         # Restore shape
         outputs = tf.concat(tf.split(outputs, num_heads, axis=0), axis=2)  # (N, T_q, d_model)
-        # outputs = tf.layers.dense(outputs, D_MODEL)
+        outputs = tf.layers.dense(outputs, D_MODEL)
 
         # Residual connection
         outputs += queries
@@ -177,10 +177,10 @@ def ff(inputs, num_units, dropout_rate, scope="positionwise_feedforward"):
     '''
     with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
         # Inner layer
-        outputs = tf.layers.dense(inputs, num_units[1], activation=tf.nn.relu)
+        outputs = tf.layers.dense(inputs, num_units[0], activation=tf.nn.relu)
 
         # Outer layer
-        # outputs = tf.layers.dense(outputs, num_units[1])
+        outputs = tf.layers.dense(outputs, num_units[1])
 
         # Residual connection
         outputs += inputs

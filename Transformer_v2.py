@@ -2,7 +2,7 @@
 import tensorflow as tf
 import numpy as np
 
-D_MODEL = 1024
+D_MODEL = 2048
 D_FF = 2048
 
 def positional_encoding(inputs, seq_len, scope='positional_encoding'):

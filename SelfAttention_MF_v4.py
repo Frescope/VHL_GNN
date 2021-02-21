@@ -542,15 +542,15 @@ def run_training(data_train, data_test, test_mode):
             audio_biases = {
                 'bc5': _variable_with_weight_decay('au_bc5', [256], 0.0000),
             }
-        with tf.variable_scope('var_name_fusion') as var_name_fusion:
-            fusion_weights = {
-                'wd1': _variable_with_weight_decay('wd1', [196608, 8192], L2_LAMBDA),
-                'wd2': _variable_with_weight_decay('wd2', [8192, 1024], L2_LAMBDA),
-            }
-            fusion_biases = {
-                'bd1': _variable_with_weight_decay('bd1', [8192], 0.0000),
-                'bd2': _variable_with_weight_decay('bd2', [1024], 0.0000),
-            }
+        # with tf.variable_scope('var_name_fusion') as var_name_fusion:
+        #     fusion_weights = {
+        #         'wd1': _variable_with_weight_decay('wd1', [196608, 8192], L2_LAMBDA),
+        #         'wd2': _variable_with_weight_decay('wd2', [8192, 1024], L2_LAMBDA),
+        #     }
+        #     fusion_biases = {
+        #         'bd1': _variable_with_weight_decay('bd1', [8192], 0.0000),
+        #         'bd2': _variable_with_weight_decay('bd2', [1024], 0.0000),
+        #     }
 
         varlist_visual = list(weights.values()) + list(biases.values())
         varlist_audio = list(audio_weights.values()) + list(audio_biases.values())
@@ -578,7 +578,7 @@ def run_training(data_train, data_test, test_mode):
                 # logits, atlist_one = score_pred(visual,audio,scores,weights,biases,audio_weights,audio_biases,
                 #                     fusion_weights,fusion_biases,dropout_holder,training_holder)
                 logits, atlist_one = score_pred(visual, audio, scores, sample_poses, weights, biases, audio_weights, audio_biases,
-                                                fusion_weights, fusion_biases, dropout_holder, training_holder)
+                                                None, None, dropout_holder, training_holder)
                 logits_list.append(logits)
                 attention_list += atlist_one  # 逐个拼接各个卡上的attention_list
                 # calculate loss & gradients
